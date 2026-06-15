@@ -48,50 +48,13 @@ Detailed architectural and design decisions are documented in the `docs/` folder
 - 🗄️ [database-schema.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/database-schema.md) — ER diagram and Prisma schema configurations.
 - 📈 [phases.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/phases.md) — 3-phase roadmap and task list.
 - 💸 [monetization-and-deploy.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/monetization-and-deploy.md) — Cloudflare setup, Google AdSense placement strategy, and domain management.
+- 🚀 [getting-started.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/getting-started.md) — Running the app (with/without Docker), integrated APIs, and commands.
 
 ---
 
 ## 💻 Local Setup Instructions
 
-### Prerequisites
-- Node.js v20 or higher
-- PostgreSQL database (Neon.tech recommended)
-- TMDB API Key ([TMDB Developer Settings](https://www.themoviedb.org/settings/api))
-
-### 1. Clone Project & Install Dependencies
-```bash
-git clone https://github.com/EfecanCngzz/Free-Serie-Tracker.git
-cd Free-Serie-Tracker
-npm install
-```
-
-### 2. Configure Environment Variables
-Create a `.env.local` file in the root folder and configure the variables based on `.env.example`:
-```env
-# Database
-DATABASE_URL="postgresql://user:password@neon.tech/dbname?sslmode=require"
-
-# Auth.js
-NEXTAUTH_SECRET="random-generated-32-character-secret"
-NEXTAUTH_URL="http://localhost:3000"
-GOOGLE_CLIENT_ID="google-client-id"
-GOOGLE_CLIENT_SECRET="google-client-secret"
-
-# External APIs
-TMDB_API_KEY="your-tmdb-v3-api-key"
-```
-
-### 3. Sync Database Schema
-```bash
-npx prisma db push
-npx prisma generate
-```
-
-### 4. Run Development Server
-```bash
-npm run dev
-```
-Open `http://localhost:3000` in your browser to view the application.
+Please refer to the detailed **[Getting Started Guide](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/getting-started.md)** for step-by-step instructions on running the project locally (using native Node.js or containerized Docker), configuring environment variables, and running database migrations.
 
 ---
 
@@ -165,50 +128,13 @@ Tüm mimari ve tasarım kararları projenin `docs/` klasöründe detaylıca belg
 - 🗄️ [database-schema.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/database-schema.md) — Veritabanı ER şeması ve Prisma tanımlamaları.
 - 📈 [phases.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/phases.md) — 3 fazdan oluşan yol haritası ve yapılacaklar listesi.
 - 💸 [monetization-and-deploy.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/monetization-and-deploy.md) — Cloudflare kurulumu, Google AdSense yerleşimleri ve domain yönetimi.
+- 🚀 [getting-started.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/getting-started.md) — Docker'lı veya Docker'sız çalıştırma rehberi, entegre API'ler ve veritabanı komutları.
 
 ---
 
 ## 💻 Yerel Geliştirme Kurulumu
 
-### Gereksinimler
-- Node.js v20 veya üzeri
-- PostgreSQL veritabanı (Neon.tech önerilir)
-- TMDB API Anahtarı ([TMDB Developer](https://www.themoviedb.org/settings/api))
-
-### 1. Projeyi Klonlayın ve Bağımlılıkları Yükleyin
-```bash
-git clone https://github.com/EfecanCngzz/Free-Serie-Tracker.git
-cd Free-Serie-Tracker
-npm install
-```
-
-### 2. Çevre Değişkenlerini Tanımlayın
-Kök dizinde `.env.local` dosyası oluşturup `.env.example` içeriğine göre düzenleyin:
-```env
-# Database
-DATABASE_URL="postgresql://user:password@neon.tech/dbname?sslmode=require"
-
-# Auth.js
-NEXTAUTH_SECRET="random-generated-32-character-secret"
-NEXTAUTH_URL="http://localhost:3000"
-GOOGLE_CLIENT_ID="google-client-id"
-GOOGLE_CLIENT_SECRET="google-client-secret"
-
-# External APIs
-TMDB_API_KEY="your-tmdb-v3-api-key"
-```
-
-### 3. Veritabanı Şemasını Eşitleyin
-```bash
-npx prisma db push
-npx prisma generate
-```
-
-### 4. Geliştirici Sunucusunu Çalıştırın
-```bash
-npm run dev
-```
-Tarayıcınızda `http://localhost:3000` adresine giderek uygulamayı inceleyebilirsiniz.
+Detaylı çalıştırma talimatları (Docker konteyner desteği, Neon PostgreSQL kurulumu, çevre değişkenleri ve Prisma komutları dahil) için **[Başlangıç Rehberi](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/getting-started.md)** belgesini inceleyebilirsiniz.
 
 ---
 
