@@ -13,15 +13,15 @@ Single developer project — prioritize working features over perfect code.
 **Estimated Time**: 4-6 weeks
 
 ### 1.1 Project Setup (~2 days)
-- [ ] Initialize Next.js 15 with TypeScript
-- [ ] Configure Tailwind CSS v4
-- [ ] Install and configure shadcn/ui
-- [ ] Set up Prisma with Neon PostgreSQL
-- [ ] Configure ESLint + Prettier
-- [ ] Set up environment variables
-- [ ] Create GitHub private repo
-- [ ] Connect Vercel for auto-deploy
-- [ ] Create CLAUDE.md and docs
+- [x] Initialize Next.js 15 with TypeScript
+- [x] Configure Tailwind CSS v4
+- [x] Install and configure shadcn/ui
+- [x] Set up Prisma with Neon PostgreSQL
+- [x] Configure ESLint + Prettier
+- [x] Set up environment variables
+- [x] Create GitHub private repo
+- [x] Configure Cloudflare Wrangler for Workers/Pages deploy (Vercel alternative)
+- [x] Create CLAUDE.md and docs
 
 ### 1.2 Authentication (~3 days)
 - [ ] Set up Auth.js v5 (NextAuth)
@@ -34,29 +34,31 @@ Single developer project — prioritize working features over perfect code.
 - [ ] bcrypt password hashing
 
 ### 1.3 External API Integration (~5 days)
-- [ ] TMDB API client (TV series)
-  - [ ] Search
-  - [ ] Details
-  - [ ] Trending
-  - [ ] Platform availability (watch providers)
-  - [ ] Ratings
-- [ ] AniList GraphQL client (Anime/Manga/LN)
-  - [ ] Search
-  - [ ] Details
-  - [ ] Trending
-  - [ ] Ratings
-- [ ] MangaDex API client (Manga/Manhwa chapters)
-  - [ ] Search
-  - [ ] Chapter list
-- [ ] Jikan API client (MAL backup)
-  - [ ] Ratings as backup source
-- [ ] Content provider abstraction layer
-- [ ] Rating normalization (all to 0-10 scale)
-- [ ] ISR caching for all external data
+- [x] TMDB API client (TV series)
+  - [x] Search
+  - [x] Details
+  - [x] Trending
+  - [x] Platform availability (watch providers)
+  - [x] Ratings
+- [x] AniList GraphQL client (Anime/Manga/LN)
+  - [x] Search
+  - [x] Details (Awaiting database mapping)
+  - [x] Trending
+  - [x] Ratings
+- [x] MangaDex API client (Manga/Manhwa chapters)
+  - [x] Search
+  - [x] Chapter list
+- [x] Jikan API client (MAL backup)
+  - [x] Search
+  - [x] Details (Awaiting database mapping)
+  - [x] Ratings as backup source
+- [/] Content provider abstraction layer (In Progress)
+- [x] Rating normalization (all to 0-10 scale)
+- [x] ISR caching for all external data (fetch next revalidate)
 
 ### 1.4 Database & API Routes (~4 days)
-- [ ] Prisma schema (all models)
-- [ ] Database migrations
+- [x] Prisma schema (all models)
+- [x] Database migrations (Local client generated, pending cloud connection sync)
 - [ ] API route: Series search
 - [ ] API route: Series detail
 - [ ] API route: Trending
@@ -64,9 +66,9 @@ Single developer project — prioritize working features over perfect code.
 - [ ] API route: Library CRUD
 - [ ] API route: Progress tracking
 - [ ] API route: User ratings
-- [ ] Zod validation on all routes
-- [ ] Rate limiting middleware
-- [ ] Error handling middleware
+- [x] Zod validation on all routes (Helper utils implemented)
+- [x] Rate limiting middleware (Helper HOF implemented)
+- [x] Error handling middleware (Helper HOF implemented)
 
 ### 1.5 Frontend Pages (~7 days)
 - [ ] Root layout (navbar, footer, theme provider)
