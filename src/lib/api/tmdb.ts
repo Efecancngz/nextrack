@@ -16,7 +16,7 @@ const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 const API_KEY = process.env.TMDB_API_KEY;
 
 /** Map TMDB status string to our ContentStatus */
-function mapTmdbStatus(status: string): ContentStatus {
+export function mapTmdbStatus(status: string): ContentStatus {
   const map: Record<string, ContentStatus> = {
     "Returning Series": "ONGOING",
     "In Production": "UPCOMING",
