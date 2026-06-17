@@ -12,7 +12,7 @@
 
 - Session strategy is `"jwt"` — not database sessions. The `Session` Prisma model stays unused; do not try to "fix" this.
 - Email verification is **skipped** for this round — `emailVerified` stays `null` after registration. Do not add an email-sending step.
-- Route protection uses a root `middleware.ts` — not a per-page `requireAuth()` redirect check.
+- Route protection uses `src/proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`, and it must live alongside `src/app/`, not the project root) — not a per-page `requireAuth()` redirect check.
 - Auth business logic (config, helpers) lives in `src/lib/auth/` — not inline in route files.
 - No `lib/services`/`lib/repositories` layer is introduced. Routes call `prisma`/`lib/auth` helpers directly, matching `src/app/api/search/route.ts`'s existing style (`compose(withErrorHandler)(...)`).
 - No test framework exists in this repo. "Tests" in this plan are `npm run type-check` / `npm run lint` plus curl commands against a locally running `npm run dev` server, or manual browser steps where forms are involved.
@@ -899,15 +899,24 @@ git commit -m "feat: wire sign-up page"
 ### Task 6: Protect `/library` with middleware
 
 **Files:**
-- Create: `middleware.ts` (project root, alongside `next.config.ts`)
+- Create: `src/proxy.ts` (not the project root — see note below)
 
 **Interfaces:**
 - Consumes: `auth` from `src/lib/auth/config.ts` (Task 2).
 - Produces: unauthenticated visitors to any `/library` path are redirected to `/auth/signin?callbackUrl=<path>`.
 
-- [ ] **Step 1: Write the middleware**
+**Next.js 16 breaking change (discovered during implementation):** Next.js 16
+renamed `middleware.ts` to `proxy.ts` (functionality unchanged — see
+`node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md`). It also
+must live "at the same level as `app`" — since this project's `app` router
+lives at `src/app`, the file goes at `src/proxy.ts`, not the project root.
+Confirmed empirically: placing it at the root (even renamed to `proxy.ts`)
+produced an empty `middleware-manifest.json` and no redirect; moving it to
+`src/proxy.ts` made `/library` redirect correctly (307 → `/auth/signin?callbackUrl=...`).
 
-Create `middleware.ts` at the project root (same level as `next.config.ts`, `package.json`):
+- [ ] **Step 1: Write the proxy**
+
+Create `src/proxy.ts` (alongside `src/app/`, not the project root):
 
 ```ts
 import { NextResponse } from "next/server";
@@ -947,7 +956,7 @@ Stop the dev server afterward.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add middleware.ts
+git add src/proxy.ts
 git commit -m "feat: protect /library route with auth middleware"
 ```
 
