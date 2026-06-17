@@ -193,12 +193,19 @@ declare module "next-auth" {
   }
 }
 
-declare module "next-auth/jwt" {
+declare module "@auth/core/jwt" {
   interface JWT {
     id?: string;
   }
 }
 ```
+
+(Augment `"@auth/core/jwt"`, not `"next-auth/jwt"` — `next-auth/jwt.d.ts` only does
+`export * from "@auth/core/jwt"` with no local `interface JWT` declaration, so
+TS module augmentation targeting `"next-auth/jwt"` silently doesn't merge into
+the `JWT` type Auth.js's callbacks actually use, leaving `token.id` typed as
+`{}` and breaking `session.user.id = token.id` with TS2322. Confirmed by
+type-checking both variants.)
 
 - [ ] **Step 3: Write the Auth.js configuration**
 
