@@ -92,6 +92,15 @@ abstraction introduced.
 
 ## Environment / local setup
 
+- **Driver adapter mismatch (discovered during planning):** `src/lib/db/prisma.ts`
+  hardcodes `PrismaNeon` from `@prisma/adapter-neon`, which speaks Neon's
+  WebSocket proxy protocol — not plain Postgres TCP. A vanilla
+  `postgres:15-alpine` container (the `docker-compose.yml` `db` service)
+  cannot be reached this way. Fix: add `pg` and `@prisma/adapter-pg` as
+  dependencies, and make `src/lib/db/prisma.ts` pick `PrismaPg` when
+  `DATABASE_URL` points at `localhost`/`127.0.0.1` (local dev/Docker), and
+  keep `PrismaNeon` for real `neon.tech` URLs (production). This is part of
+  Task 1 in the implementation plan.
 - `.env`: replace the placeholder `DATABASE_URL` with
   `postgresql://postgres:postgres@localhost:5432/serietracker?schema=public`
   (matches `docker-compose.yml`'s `db` service credentials, reachable from
