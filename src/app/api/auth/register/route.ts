@@ -11,7 +11,7 @@ import { prisma } from "@/lib/db/prisma";
 import { registerSchema } from "@/lib/validations/auth";
 import { AppError } from "@/lib/utils/app-error";
 import { successResponse, Responses } from "@/lib/utils/api-response";
-import { withErrorHandler, compose } from "@/lib/utils/middleware";
+import { withErrorHandler, withRateLimit, compose } from "@/lib/utils/middleware";
 
 const SALT_ROUNDS = 10;
 
@@ -39,4 +39,4 @@ async function handler(req: NextRequest) {
   return successResponse({ id: user.id, email: user.email, name: user.name }, 201);
 }
 
-export const POST = compose(withErrorHandler)(handler);
+export const POST = compose(withErrorHandler, withRateLimit)(handler);
