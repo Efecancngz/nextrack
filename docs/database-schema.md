@@ -23,6 +23,7 @@ erDiagram
     User {
         String id PK
         String name
+        String username UK
         String email UK
         DateTime emailVerified
         String image
@@ -139,6 +140,7 @@ datasource db {
 model User {
   id            String    @id @default(cuid())
   name          String?
+  username      String?   @unique
   email         String    @unique
   emailVerified DateTime?
   image         String?

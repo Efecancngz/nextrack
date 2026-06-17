@@ -39,15 +39,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { username: true },
+        });
+        token.username = dbUser?.username;
+      } else if (trigger === "update" && session?.username) {
+        token.username = session.username;
       }
       return token;
     },
     async session({ session, token }) {
       if (token.id && session.user) {
         session.user.id = token.id;
+        session.user.username = token.username as string | null | undefined;
       }
       return session;
     },

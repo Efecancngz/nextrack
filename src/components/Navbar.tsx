@@ -46,7 +46,9 @@ export default function Navbar() {
         <div className="navbar-auth">
           {session?.user ? (
             <>
-              <span className="navbar-user-email">{session.user.email}</span>
+              <span className="navbar-user-email">
+                {session.user.username ? `@${session.user.username}` : (session.user.name || session.user.email)}
+              </span>
               <button onClick={() => signOut()} className="btn btn-secondary btn-sm">
                 Sign out
               </button>
@@ -96,15 +98,20 @@ export default function Navbar() {
             ))}
             <div className="navbar-mobile-auth">
               {session?.user ? (
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    signOut();
-                  }}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Sign out
-                </button>
+                <>
+                  <span className="navbar-user-email block mb-2 text-sm opacity-75">
+                    {session.user.username ? `@${session.user.username}` : (session.user.name || session.user.email)}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      signOut();
+                    }}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Sign out
+                  </button>
+                </>
               ) : (
                 <>
                   <Link href="/auth/signin" className="btn btn-secondary btn-sm" onClick={() => setMobileOpen(false)}>
