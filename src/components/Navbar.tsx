@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 const NAV_LINKS = [
   { href: "/explore", label: "Browse" },
@@ -12,6 +13,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session } = useSession();
 
   return (
     <header className="navbar-glass navbar">
@@ -42,12 +44,23 @@ export default function Navbar() {
 
         {/* Auth buttons */}
         <div className="navbar-auth">
-          <Link href="/auth/signin" className="btn btn-secondary btn-sm">
-            Sign in
-          </Link>
-          <Link href="/auth/signup" className="btn btn-primary btn-sm navbar-cta">
-            Get started
-          </Link>
+          {session?.user ? (
+            <>
+              <span className="navbar-user-email">{session.user.email}</span>
+              <button onClick={() => signOut()} className="btn btn-secondary btn-sm">
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/signin" className="btn btn-secondary btn-sm">
+                Sign in
+              </Link>
+              <Link href="/auth/signup" className="btn btn-primary btn-sm navbar-cta">
+                Get started
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -82,12 +95,26 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="navbar-mobile-auth">
-              <Link href="/auth/signin" className="btn btn-secondary btn-sm" onClick={() => setMobileOpen(false)}>
-                Sign in
-              </Link>
-              <Link href="/auth/signup" className="btn btn-primary btn-sm" onClick={() => setMobileOpen(false)}>
-                Get started
-              </Link>
+              {session?.user ? (
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    signOut();
+                  }}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Sign out
+                </button>
+              ) : (
+                <>
+                  <Link href="/auth/signin" className="btn btn-secondary btn-sm" onClick={() => setMobileOpen(false)}>
+                    Sign in
+                  </Link>
+                  <Link href="/auth/signup" className="btn btn-primary btn-sm" onClick={() => setMobileOpen(false)}>
+                    Get started
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         </div>
