@@ -91,24 +91,40 @@ src/app/
 │   │   │   └── route.ts          # GET — Trending listesi
 │   │   └── [id]/
 │   │       ├── route.ts          # GET — Seri detayı
-│   │       └── similar/
-│   │           └── route.ts      # GET — Benzer seriler
+│   │       ├── similar/
+│   │       │   └── route.ts      # GET — Benzer seriler
+│   │       ├── note/
+│   │       │   └── route.ts      # GET, PUT, DELETE — Kişisel özel not
+│   │       └── languages/
+│   │           └── route.ts      # GET — Dil/altyazı durum bilgisi
 │   ├── explore/
 │   │   ├── route.ts              # GET — Filtreli keşfet
 │   │   ├── genres/
 │   │   │   └── route.ts          # GET — Tür listesi
-│   │   └── platforms/
-│   │       └── route.ts          # GET — Platform listesi
+│   │   ├── platforms/
+│   │   │   └── route.ts          # GET — Platform listesi
+│   │   └── ai-search/
+│   │       └── route.ts          # POST — AI destekli semantik arama (Phase 2.7)
 │   ├── library/
 │   │   ├── route.ts              # GET — Liste, POST — Ekle
 │   │   └── [id]/
-│   │       ├── route.ts          # PATCH — Durum güncelle, DELETE — Kaldır
+│   │       ├── route.ts              # PATCH — Durum güncelle, DELETE — Kaldır
 │   │       └── progress/
 │   │           └── route.ts      # PATCH — Bölüm ilerlemesi güncelle
-│   └── ratings/
-│       ├── route.ts              # POST — Puan ver
-│       └── [id]/
-│           └── route.ts          # PATCH — Güncelle, DELETE — Sil
+│   ├── ratings/
+│   │   ├── route.ts              # POST — Puan ver
+│   │   └── [id]/
+│   │       └── route.ts          # PATCH — Güncelle, DELETE — Sil
+│   ├── social/
+│   │   ├── feed/
+│   │   │   └── route.ts          # GET — Arkadaş aktivite akışı (Phase 3.2)
+│   │   └── follow/
+│   │       └── [userId]/
+│   │           └── route.ts      # POST — Takip et, DELETE — Takipten çık
+│   ├── users/
+│   │   └── [id]/
+│   │       └── badges/
+│   │           └── route.ts      # GET — Kullanıcı rozetleri (Phase 3.5)
 │
 └── api-docs/
     └── page.tsx                  # Swagger UI sayfası
@@ -149,8 +165,12 @@ src/components/
 │   ├── toast.tsx                 # Bildirim toast
 │   ├── tooltip.tsx
 │   └── badge.tsx
+├── Navbar.tsx                    # Üst navigasyon barı
+├── Footer.tsx                    # Alt bilgi alanı
+├── SeriesCard.tsx                # Seri kartı görünümü
+├── HeroSlider.tsx                # Slayt/slider bileşeni (ana sayfa kahraman görseli)
 │
-├── series/                       # Seri ile ilgili bileşenler
+├── series/                       # Seri ile ilgili bileşenler (planlanan ek bileşenler)
 │   ├── series-card.tsx           # Kart görünümü — poster + bilgi
 │   ├── series-list-item.tsx      # Liste görünümü — tek satır
 │   ├── series-grid.tsx           # Grid konteyner + view mode toggle

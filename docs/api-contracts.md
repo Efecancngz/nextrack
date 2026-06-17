@@ -3,7 +3,7 @@
 ## Base URL
 
 ```
-Production: https://free-serie-tracker.vercel.app/api
+Production: https://free-serie-tracker.pages.dev/api
 Development: http://localhost:3000/api
 ```
 
@@ -186,6 +186,29 @@ Get similar series recommendations.
 
 ## Explore / Filter Endpoints
 
+### POST `/api/explore/ai-search` (🔒 Authenticated)
+
+AI-powered semantic search and recommendations using the 3-way security blend. Capped at 10 requests per user per day.
+
+```typescript
+// Request Body
+{
+  genres?: string[];            // Optional genres list
+  contentType?: ContentType;   // Optional content type filter
+  platforms?: string[];         // Optional watch platforms list
+  hint?: string;                // AI context hint (Max 80 chars, e.g. "anti-hero")
+}
+
+// Response 200
+{
+  success: true,
+  data: {
+    explanation: string;        // AI-generated reasoning text
+    results: SeriesCard[];      // SeriesCard results list ranked by vector similarity
+  }
+}
+```
+
 ### GET `/api/explore`
 
 Browse with advanced filters.
@@ -269,6 +292,8 @@ interface LibraryEntry {
   series: SeriesCard;
   status: LibraryStatus;
   isFavorite: boolean;
+  waitLanguage: string | null;      // Preferred language to wait for releases (e.g. "tr")
+  customSearchKeyword: string | null; // Custom preferred site search keyword (e.g. "tranimeizle")
   progress: {
     currentEpisode: number;
     currentSeason: number;
@@ -292,6 +317,8 @@ Add series to library.
   externalId?: string;          // If series doesn't exist in DB yet
   externalSource?: string;
   status?: LibraryStatus;       // Default: "PLAN_TO_WATCH"
+  waitLanguage?: string | null;
+  customSearchKeyword?: string | null;
 }
 
 // Response 201
@@ -310,6 +337,8 @@ Update library entry status.
 {
   status?: LibraryStatus;
   isFavorite?: boolean;
+  waitLanguage?: string | null;
+  customSearchKeyword?: string | null;
 }
 
 // Response 200
@@ -413,6 +442,170 @@ Delete a rating.
 
 ---
 
+## Notes Endpoints (🔒 Authenticated)
+
+### GET `/api/series/[id]/note`
+
+Retrieve the current user's private note and custom link for a specific series.
+
+```typescript
+// Response 200
+{
+  success: true,
+  data: {
+    id: string;
+    seriesId: string;
+    content: string;
+    customUrl: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null
+}
+```
+
+### PUT `/api/series/[id]/note`
+
+Create or update the current user's private note and custom link for a specific series.
+
+```typescript
+// Request
+{
+  content: string;           // Note text content
+  customUrl?: string | null; // Optional custom/external URL (e.g., fan translation link)
+}
+
+// Response 200 (if updated) or 201 (if created)
+{
+  success: true,
+  data: {
+    id: string;
+    seriesId: string;
+    content: string;
+    customUrl: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }
+}
+```
+
+### DELETE `/api/series/[id]/note`
+
+Delete the current user's private note and custom link for a specific series.
+
+```typescript
+// Response 200
+{
+  success: true,
+  data: { id: string }
+}
+```
+
+---
+
+## Language Tracking Endpoints (🔒 Authenticated)
+
+### GET `/api/series/[id]/languages`
+
+Get detailed release tracking statistics of episodes or chapters per platform and language.
+
+```typescript
+// Response 200
+{
+  success: true,
+  data: EpisodeLanguageInfo[]
+}
+
+interface EpisodeLanguageInfo {
+  id: string;
+  seriesId: string;
+  episode: number | null;
+  chapter: number | null;
+  season: number | null;
+  platform: string;           // "crunchyroll", "mangadex", etc.
+  language: string;           // "tr", "en", etc.
+  availableAt: string | null; // Timestamp when released at source
+  detectedAt: string;         // Timestamp when detected by our sync cron
+}
+```
+
+---
+
+## Social Feed Endpoints (🔒 Authenticated)
+
+### GET `/api/social/feed`
+
+Get recent updates from friends (series watched, ratings given, reviews written).
+
+```typescript
+// Response 200
+{
+  success: true,
+  data: ActivityItem[]
+}
+
+interface ActivityItem {
+  id: string;
+  userId: string;
+  userName: string;
+  userImage: string | null;
+  type: "WATCH" | "READ" | "RATING" | "REVIEW";
+  seriesId: string;
+  seriesTitle: string;
+  detail: string;             // e.g. "watched Episode 1115", "rated 10/10"
+  createdAt: string;          // ISO timestamp
+}
+```
+
+### POST `/api/social/follow/[userId]`
+
+Follow a user.
+
+```typescript
+// Response 200
+{
+  success: true,
+  data: { success: true }
+}
+```
+
+### DELETE `/api/social/follow/[userId]`
+
+Unfollow a user.
+
+```typescript
+// Response 200
+{
+  success: true,
+  data: { success: true }
+}
+```
+
+---
+
+## Gamification & Badges Endpoints
+
+### GET `/api/users/[id]/badges`
+
+Retrieve badges earned by a user.
+
+```typescript
+// Response 200
+{
+  success: true,
+  data: UserBadgeInfo[]
+}
+
+interface UserBadgeInfo {
+  badgeId: string;
+  name: string;               // e.g. "Otaku"
+  description: string;        // e.g. "Tracked over 50 anime series"
+  icon: string;               // badge icon class or URL
+  earnedAt: string;           // ISO timestamp
+}
+```
+
+---
+
 ## Error Codes
 
 | Code | HTTP Status | Description |
@@ -442,6 +635,21 @@ const addToLibrarySchema = z.object({
   externalId: z.string().optional(),
   externalSource: z.string().optional(),
   status: z.nativeEnum(LibraryStatus).default("PLAN_TO_WATCH"),
+  waitLanguage: z.string().max(10).optional().nullable(),
+  customSearchKeyword: z.string().max(100).optional().nullable(),
+});
+
+const updateLibrarySchema = z.object({
+  status: z.nativeEnum(LibraryStatus).optional(),
+  isFavorite: z.boolean().optional(),
+  waitLanguage: z.string().max(10).optional().nullable(),
+  customSearchKeyword: z.string().max(100).optional().nullable(),
+});
+
+// Notes
+const updateNoteSchema = z.object({
+  content: z.string().max(10000),
+  customUrl: z.string().url().max(2000).optional().nullable(),
 });
 
 // Progress
@@ -466,4 +674,13 @@ const searchSchema = z.object({
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(50).default(20),
 });
+
+// AI Search
+const aiSearchSchema = z.object({
+  genres: z.array(z.string()).optional(),
+  contentType: z.nativeEnum(ContentType).optional(),
+  platforms: z.array(z.string()).optional(),
+  hint: z.string().max(80).optional(),
+});
+```,StartLine:589,TargetContent:
 ```

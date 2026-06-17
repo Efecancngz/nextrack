@@ -15,7 +15,7 @@ Welcome to the **Free Serie Tracker** repository! To keep the codebase clean, re
 
    *Examples:*
    - `feat: add jikan api client for mal integration`
-   - `fix: resolve dynamic route param promise resolution in next.js 15`
+   - `fix: resolve dynamic route param promise resolution in next.js 16`
    - `style: adjust explore page grid spacing`
 
 2. **No Automated Pushes**

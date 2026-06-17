@@ -24,7 +24,7 @@ This project follows the **JustWatch** model; it does not contain pirated/illega
 
 | Layer | Technology | Description |
 |---|---|---|
-| **Framework** | Next.js 15 (App Router) | React-based full-stack framework |
+| **Framework** | Next.js 16 (App Router) | React-based full-stack framework |
 | **Language** | TypeScript | Type-safe development |
 | **Database** | PostgreSQL (Neon.tech) | Serverless cloud SQL database |
 | **ORM** | Prisma | Type-safe SQL client and migration runner |
@@ -104,7 +104,7 @@ Bu proje **JustWatch** modelini benimser; korsan/yasadışı içerik bağlantıl
 
 | Katman | Teknoloji | Açıklama |
 |---|---|---|
-| **Framework** | Next.js 15 (App Router) | React tabanlı full-stack framework |
+| **Framework** | Next.js 16 (App Router) | React tabanlı full-stack framework |
 | **Dil** | TypeScript | Güvenli ve ölçeklenebilir kod yapısı |
 | **Veritabanı** | PostgreSQL (Neon.tech) | Sunucusuz (Serverless) SQL veritabanı |
 | **ORM** | Prisma | Tip güvenli SQL sorguları ve şema yönetimi |

@@ -49,7 +49,7 @@ const options: swaggerJsdoc.Options = {
         description: "Development",
       },
       {
-        url: "https://free-serie-tracker.vercel.app/api",
+        url: "https://free-serie-tracker.pages.dev/api",
         description: "Production",
       },
     ],
@@ -58,7 +58,7 @@ const options: swaggerJsdoc.Options = {
         cookieAuth: {
           type: "apiKey",
           in: "cookie",
-          name: "next-auth.session-token",
+          name: "authjs.session-token",
           description: "Auth.js session cookie (HttpOnly)",
         },
       },
@@ -154,6 +154,8 @@ const options: swaggerJsdoc.Options = {
             series: { $ref: "#/components/schemas/SeriesCard" },
             status: { $ref: "#/components/schemas/LibraryStatus" },
             isFavorite: { type: "boolean" },
+            waitLanguage: { type: "string", nullable: true, example: "tr" },
+            customSearchKeyword: { type: "string", nullable: true, example: "tranimeizle" },
             progress: { $ref: "#/components/schemas/Progress" },
             userRating: { type: "integer", nullable: true, minimum: 1, maximum: 10 },
             addedAt: { type: "string", format: "date-time" },
@@ -200,6 +202,18 @@ const options: swaggerJsdoc.Options = {
               $ref: "#/components/schemas/LibraryStatus",
               default: "PLAN_TO_WATCH",
             },
+            waitLanguage: { type: "string", nullable: true, example: "tr" },
+            customSearchKeyword: { type: "string", nullable: true, example: "tranimeizle" },
+          },
+        },
+
+        UpdateLibraryRequest: {
+          type: "object",
+          properties: {
+            status: { $ref: "#/components/schemas/LibraryStatus" },
+            isFavorite: { type: "boolean" },
+            waitLanguage: { type: "string", nullable: true, example: "tr" },
+            customSearchKeyword: { type: "string", nullable: true, example: "tranimeizle" },
           },
         },
 
@@ -220,6 +234,78 @@ const options: swaggerJsdoc.Options = {
             seriesId: { type: "string" },
             score: { type: "integer", minimum: 1, maximum: 10 },
             review: { type: "string", maxLength: 2000 },
+          },
+        },
+
+        AiSearchRequest: {
+          type: "object",
+          properties: {
+            genres: { type: "array", items: { type: "string" }, example: ["Action"] },
+            contentType: { $ref: "#/components/schemas/ContentType" },
+            platforms: { type: "array", items: { type: "string" }, example: ["Netflix"] },
+            hint: { type: "string", maxLength: 80, example: "similar to Bleach" },
+          },
+        },
+
+        UserNote: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            seriesId: { type: "string" },
+            content: { type: "string" },
+            customUrl: { type: "string", nullable: true },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+
+        UpdateNoteRequest: {
+          type: "object",
+          required: ["content"],
+          properties: {
+            content: { type: "string", maxLength: 10000 },
+            customUrl: { type: "string", format: "uri", nullable: true, maxLength: 2000 },
+          },
+        },
+
+        EpisodeLanguage: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            seriesId: { type: "string" },
+            episode: { type: "integer", nullable: true },
+            chapter: { type: "integer", nullable: true },
+            season: { type: "integer", nullable: true },
+            platform: { type: "string" },
+            language: { type: "string" },
+            availableAt: { type: "string", format: "date-time", nullable: true },
+            detectedAt: { type: "string", format: "date-time" },
+          },
+        },
+
+        ActivityItem: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            userId: { type: "string" },
+            userName: { type: "string" },
+            userImage: { type: "string", nullable: true },
+            type: { type: "string", enum: ["WATCH", "READ", "RATING", "REVIEW"] },
+            seriesId: { type: "string" },
+            seriesTitle: { type: "string" },
+            detail: { type: "string", example: "watched Episode 1115" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+
+        UserBadgeInfo: {
+          type: "object",
+          properties: {
+            badgeId: { type: "string" },
+            name: { type: "string", example: "Otaku" },
+            description: { type: "string", example: "Tracked over 50 anime series" },
+            icon: { type: "string", example: "otaku-badge-class" },
+            earnedAt: { type: "string", format: "date-time" },
           },
         },
 
@@ -264,6 +350,10 @@ const options: swaggerJsdoc.Options = {
       { name: "Explore", description: "Browse & filter content" },
       { name: "Library", description: "User personal library management" },
       { name: "Ratings", description: "User ratings & reviews" },
+      { name: "Notes", description: "User private notes & custom links" },
+      { name: "Languages", description: "Language & translation tracking" },
+      { name: "Social", description: "Friends tracking, follows and social feeds" },
+      { name: "Badges", description: "Gamification & user achievements" },
     ],
   },
   apis: ["./src/app/api/**/route.ts"], // JSDoc comment'lerini bu dosyalardan oku
@@ -395,6 +485,124 @@ export async function GET(req: NextRequest) { /* ... */ }
  *                       $ref: '#/components/schemas/SeriesDetail'
  *       404:
  *         description: Series not found
+ */
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) { /* ... */ }
+```
+
+```typescript
+// src/app/api/series/[id]/note/route.ts
+
+/**
+ * @openapi
+ * /series/{id}/note:
+ *   get:
+ *     tags: [Notes]
+ *     summary: Get user note for series
+ *     description: Retrieve authenticated user's private note and custom link for a specific series
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User private note (or null if not set)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/UserNote'
+ *                       nullable: true
+ *       401:
+ *         description: Not authenticated
+ *   put:
+ *     tags: [Notes]
+ *     summary: Create or update user note
+ *     description: Create or update the authenticated user's private note and custom link for a specific series
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateNoteRequest'
+ *     responses:
+ *       200:
+ *         description: Note updated
+ *       201:
+ *         description: Note created
+ *       401:
+ *         description: Not authenticated
+ *   delete:
+ *     tags: [Notes]
+ *     summary: Delete user note
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Note deleted
+ *       401:
+ *         description: Not authenticated
+ */
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) { /* ... */ }
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) { /* ... */ }
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) { /* ... */ }
+```
+
+```typescript
+// src/app/api/series/[id]/languages/route.ts
+
+/**
+ * @openapi
+ * /series/{id}/languages:
+ *   get:
+ *     tags: [Languages]
+ *     summary: Get series episode language releases
+ *     description: Get release timestamps/status for all detected languages and subtitles of a series
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Release history list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/EpisodeLanguage'
+ *       401:
+ *         description: Not authenticated
  */
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) { /* ... */ }
 ```
@@ -533,10 +741,165 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
  */
 ```
 
+```typescript
+// src/app/api/explore/ai-search/route.ts
+
+/**
+ * @openapi
+ * /explore/ai-search:
+ *   post:
+ *     tags: [Explore]
+ *     summary: AI-powered semantic search and recommendations
+ *     description: Perform semantic search on series descriptions using structured form filters and natural language hints. Logged-in users only, capped at 10 requests/day.
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AiSearchRequest'
+ *     responses:
+ *       200:
+ *         description: Search results returned successfully with AI reasoning
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         explanation:
+ *                           type: string
+ *                           example: "Based on your interest in action anime with time travel hints, I suggest these titles..."
+ *                         results:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/SeriesCard'
+ *       401:
+ *         description: Not authenticated
+ *       429:
+ *         description: Rate limit exceeded (limit: 10/day)
+ */
+export async function POST(req: NextRequest) { /* ... */ }
+```
+
+```typescript
+// src/app/api/social/feed/route.ts
+
+/**
+ * @openapi
+ * /social/feed:
+ *   get:
+ *     tags: [Social]
+ *     summary: Get friend activity feed
+ *     description: Retrieve recent watching, reading, and rating activities of followed users.
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Activity feed returned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/ActivityItem'
+ *       401:
+ *         description: Not authenticated
+ */
+export async function GET(req: NextRequest) { /* ... */ }
+```
+
+```typescript
+// src/app/api/social/follow/[userId]/route.ts
+
+/**
+ * @openapi
+ * /social/follow/{userId}:
+ *   post:
+ *     tags: [Social]
+ *     summary: Follow a user
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Followed user successfully
+ *       401:
+ *         description: Not authenticated
+ *   delete:
+ *     tags: [Social]
+ *     summary: Unfollow a user
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Unfollowed user successfully
+ *       401:
+ *         description: Not authenticated
+ */
+export async function POST(req: NextRequest, { params }: { params: { userId: string } }) { /* ... */ }
+export async function DELETE(req: NextRequest, { params }: { params: { userId: string } }) { /* ... */ }
+```
+
+```typescript
+// src/app/api/users/[id]/badges/route.ts
+
+/**
+ * @openapi
+ * /users/{id}/badges:
+ *   get:
+ *     tags: [Badges]
+ *     summary: Get user badges
+ *     description: Retrieve all achievement badges earned by a user.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of user badges returned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/ApiSuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/UserBadgeInfo'
+ */
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) { /* ... */ }
+```
+
 ## Erişim
 
 - **Development**: `http://localhost:3000/api-docs`
-- **Production**: `https://free-serie-tracker.vercel.app/api-docs`
+- **Production**: `https://free-serie-tracker.pages.dev/api-docs`
 - **Raw JSON spec**: `GET /api/docs`
 
 ## Ortam Kontrolü (Opsiyonel)
