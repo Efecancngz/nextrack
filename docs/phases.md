@@ -63,9 +63,9 @@ Single developer project — prioritize working features over perfect code.
 - [x] API route: Series detail
 - [x] API route: Trending (segmented by source/countryOfOrigin)
 - [x] API route: Explore with filters
-- [ ] API route: Library CRUD (blocked: needs DB)
-- [ ] API route: Progress tracking (blocked: needs DB)
-- [ ] API route: User ratings (blocked: needs DB)
+- [x] API route: Library CRUD (GET/POST /api/library, PATCH/DELETE /api/library/[id])
+- [x] API route: Progress tracking (PATCH /api/library/[id]/progress)
+- [x] API route: User ratings (PUT /api/series/[id]/rating)
 - [x] Zod validation on all routes (Helper utils implemented)
 - [x] Rate limiting middleware (Helper HOF implemented)
 - [x] Error handling middleware (Helper HOF implemented)
@@ -90,16 +90,17 @@ Single developer project — prioritize working features over perfect code.
   - [x] Episodes/chapters info
   - [x] Platform availability cards (Where to Watch)
   - [x] Multi-source ratings display
-  - [x] "Add to Library" button (disabled placeholder)
+  - [x] "Add to Library" button (live status picker, wired to API)
+  - [x] Personal rating widget (1-10 + optional review, wired to API)
   - [ ] Similar series section (future addition)
 - [x] **Library Page** (authenticated)
-  - [/] Status tabs (Watching, Plan, Completed, On Hold, Dropped) (UI empty state ready)
-  - [/] Content type filter (UI ready)
+  - [x] Status tabs (Watching, Plan, Completed, On Hold, Dropped) (live, filters real data)
+  - [ ] Content type filter
   - [ ] Card/list view toggle
-  - [/] Progress tracking UI (increment/set episode) (UI ready)
-  - [ ] Quick status change
-  - [ ] Personal rating input
-  - [ ] Remove from library
+  - [x] Progress tracking UI (increment episode/chapter, persists)
+  - [ ] Quick status change (from the library page itself — currently only settable via the series detail page's status picker)
+  - [x] Personal rating input (on series detail page, not yet surfaced on library cards)
+  - [x] Remove from library (with confirm)
 - [x] **Auth Pages**
   - [x] Login page (Form UI ready)
   - [x] Register page (Form UI ready)
