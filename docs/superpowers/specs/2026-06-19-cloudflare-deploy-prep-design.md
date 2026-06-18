@@ -5,7 +5,7 @@
 
 ## Goal
 
-Get the project to a state where deploying to Cloudflare Workers is a single command away, **without actually deploying**. The user has explicitly decided not to go live until the rest of the project (all Phase 1 items) is finished — this sub-project is preparation only: provision the production database, sync the schema to it, stage all secrets, and verify the production build compiles. The final `wrangler deploy` step is documented but deliberately not executed as part of this work.
+Get the project to a state where deploying to Cloudflare Workers is a single command away, **without actually deploying**. The user has explicitly decided not to go live until the **entire project** is finished — not just Phase 1, but Phase 2 and Phase 3 too (see `docs/phases.md`'s full roadmap) — this sub-project is preparation only: provision the production database, sync the schema to it, stage all secrets, and verify the production build compiles. The final `wrangler deploy` step is documented but deliberately not executed as part of this work, and won't be until the user confirms every phase is done, not just this Phase 1 close-out effort.
 
 ## Out of Scope
 
