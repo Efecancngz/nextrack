@@ -2,16 +2,24 @@ import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/helpers";
 import { getOrCreateSeriesFromCompoundId } from "@/lib/db/series-cache";
-import { addToLibrarySchema } from "@/lib/validations/library";
+import { addToLibrarySchema, libraryStatusEnum } from "@/lib/validations/library";
 import { AppError } from "@/lib/utils/app-error";
 import { successResponse, Responses } from "@/lib/utils/api-response";
 import { withErrorHandler, withRateLimit, compose } from "@/lib/utils/middleware";
 import { Prisma } from "@/generated/prisma/client";
-import type { LibraryStatus } from "@/types/common";
 
 async function getHandler(req: NextRequest) {
   const user = await requireAuth();
-  const statusFilter = req.nextUrl.searchParams.get("status") as LibraryStatus | null;
+  const rawStatus = req.nextUrl.searchParams.get("status");
+
+  let statusFilter: ReturnType<typeof libraryStatusEnum.parse> | undefined;
+  if (rawStatus !== null) {
+    const parsedStatus = libraryStatusEnum.safeParse(rawStatus);
+    if (!parsedStatus.success) {
+      return Responses.badRequest("Invalid status filter");
+    }
+    statusFilter = parsedStatus.data;
+  }
 
   const items = await prisma.libraryItem.findMany({
     where: {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const libraryStatusEnum = z.enum([
+export const libraryStatusEnum = z.enum([
   "WATCHING",
   "PLAN_TO_WATCH",
   "COMPLETED",
