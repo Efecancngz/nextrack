@@ -1,15 +1,16 @@
 import { PrismaClient } from "../../generated/prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { neonConfig } from "@neondatabase/serverless";
 import ws from "ws";
 
 /**
- * Singleton Prisma client for Prisma 7 with Neon Serverless driver adapter.
- * Prevents "too many connections" error in Next.js dev hot reload
- * and is compatible with Cloudflare Workers / Edge runtime.
+ * Singleton Prisma client. Real Neon URLs (production) use the Neon
+ * serverless driver adapter; local Postgres (Docker dev) uses the plain
+ * node-postgres adapter, since Neon's adapter speaks a WebSocket proxy
+ * protocol that a vanilla Postgres server doesn't implement.
  */
 
-// Set up WebSocket support for Neon in Node.js environments (local dev)
 if (typeof window === "undefined" && typeof globalThis.WebSocket === "undefined") {
   neonConfig.webSocketConstructor = ws;
 }
@@ -20,7 +21,11 @@ const globalForPrisma = globalThis as unknown as {
 
 const connectionString = process.env.DATABASE_URL || "postgresql://mock:mock@localhost:5432/mock";
 
-const adapter = new PrismaNeon({ connectionString });
+const isLocalDatabase = /localhost|127\.0\.0\.1/.test(connectionString);
+
+const adapter = isLocalDatabase
+  ? new PrismaPg({ connectionString })
+  : new PrismaNeon({ connectionString });
 
 export const prisma =
   globalForPrisma.prisma ??

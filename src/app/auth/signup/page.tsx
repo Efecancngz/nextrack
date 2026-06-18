@@ -1,10 +1,46 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-
+import { useRouter } from "next/navigation";
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (password !== confirm) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+
+    const json = await res.json();
+    setLoading(false);
+
+    if (!json.success) {
+      setError(json.error || "Registration failed");
+      return;
+    }
+
+    router.push("/auth/signin");
+  }
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -21,8 +57,7 @@ export default function SignUpPage() {
           <p className="auth-subtitle">Start tracking your favorite series for free</p>
         </div>
 
-        {/* Registration form (placeholder) */}
-        <form className="auth-form" onSubmit={(e) => e.preventDefault()}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-field">
             <label htmlFor="name" className="auth-label">Name</label>
             <input
@@ -30,8 +65,9 @@ export default function SignUpPage() {
               type="text"
               className="input"
               placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
-              disabled
             />
           </div>
 
@@ -42,8 +78,9 @@ export default function SignUpPage() {
               type="email"
               className="input"
               placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              disabled
             />
           </div>
 
@@ -54,8 +91,9 @@ export default function SignUpPage() {
               type="password"
               className="input"
               placeholder="Minimum 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
-              disabled
             />
           </div>
 
@@ -66,20 +104,18 @@ export default function SignUpPage() {
               type="password"
               className="input"
               placeholder="Repeat your password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
               required
-              disabled
             />
           </div>
 
-          <button type="submit" className="btn btn-primary auth-submit" disabled>
-            Create Account
+          {error && <p className="auth-error">{error}</p>}
+
+          <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>
+            {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
-
-        <p className="auth-notice">
-          Authentication requires a database connection. <br/>
-          Please set up Neon PostgreSQL to enable registration.
-        </p>
 
         <div className="auth-footer">
           <p>Already have an account? <Link href="/auth/signin" className="auth-link">Sign in</Link></p>

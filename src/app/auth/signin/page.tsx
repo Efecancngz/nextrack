@@ -1,10 +1,39 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function SignInPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    setLoading(false);
+
+    if (!result || result.error) {
+      setError("Invalid email or password");
+      return;
+    }
+
+    router.push(searchParams.get("callbackUrl") || "/");
+  }
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -21,8 +50,7 @@ export default function SignInPage() {
           <p className="auth-subtitle">Sign in to your account to continue tracking</p>
         </div>
 
-        {/* Email/Password form (placeholder) */}
-        <form className="auth-form" onSubmit={(e) => e.preventDefault()}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-field">
             <label htmlFor="email" className="auth-label">Email</label>
             <input
@@ -30,8 +58,9 @@ export default function SignInPage() {
               type="email"
               className="input"
               placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              disabled
             />
           </div>
 
@@ -42,20 +71,28 @@ export default function SignInPage() {
               type="password"
               className="input"
               placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
-              disabled
             />
           </div>
 
-          <button type="submit" className="btn btn-primary auth-submit" disabled>
-            Sign In
+          {error && <p className="auth-error">{error}</p>}
+
+          <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <p className="auth-notice">
-          Authentication requires a database connection. <br/>
-          Please set up Neon PostgreSQL to enable sign in.
-        </p>
+        <div className="auth-divider">or</div>
+
+        <button
+          type="button"
+          className="btn btn-secondary auth-submit"
+          onClick={() => signIn("google", { callbackUrl: searchParams.get("callbackUrl") || "/" })}
+        >
+          Continue with Google
+        </button>
 
         <div className="auth-footer">
           <p>Don&apos;t have an account? <Link href="/auth/signup" className="auth-link">Sign up</Link></p>

@@ -41,6 +41,10 @@ export class AppError extends Error {
     return new AppError(message, 400, "BAD_REQUEST");
   }
 
+  static conflict(message = "Resource already exists"): AppError {
+    return new AppError(message, 409, "CONFLICT");
+  }
+
   static validationError(message = "Validation failed"): AppError {
     return new AppError(message, 422, "VALIDATION_ERROR");
   }

@@ -23,14 +23,15 @@ Single developer project — prioritize working features over perfect code.
 - [x] Create CLAUDE.md and docs
 
 ### 1.2 Authentication (~3 days)
-- [ ] Set up Auth.js v5 (NextAuth) (blocked: needs DB)
-- [ ] Google OAuth provider
-- [ ] Email/password credentials provider
-- [ ] Prisma adapter for session storage
-- [/] Login page UI (placeholder ready)
-- [/] Registration page UI (placeholder ready)
-- [ ] Protected route middleware (blocked: needs DB)
-- [ ] bcrypt password hashing
+- [x] Set up Auth.js v5 (NextAuth)
+- [x] Google OAuth provider
+- [x] Email/password credentials provider
+- [x] Prisma adapter for session storage
+- [x] Login page UI
+- [x] Registration page UI
+- [x] Protected route middleware (via src/proxy.ts)
+- [x] bcrypt password hashing
+- [x] Custom username selection flow for new and OAuth accounts
 
 ### 1.3 External API Integration (~5 days)
 - [x] TMDB API client (TV series)

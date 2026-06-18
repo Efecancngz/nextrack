@@ -51,3 +51,4 @@ AGENTS.md
 # Docker local data (if bind mounts are used)
 .docker/
 postgres_data/
+graphify-out/

@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { SessionProvider } from "@/components/providers/session-provider";
 
 /* Geist — body text (--font-sans) */
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -85,13 +86,15 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-dvh flex flex-col antialiased">
-        <Navbar />
+        <SessionProvider>
+          <Navbar />
 
-        <main className="flex-1">
-          {children}
-        </main>
+          <main className="flex-1">
+            {children}
+          </main>
 
-        <Footer />
+          <Footer />
+        </SessionProvider>
 
         {/* Google AdSense — production only */}
         {process.env.NODE_ENV === "production" &&
