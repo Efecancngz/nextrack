@@ -95,10 +95,10 @@ Single developer project — prioritize working features over perfect code.
   - [ ] Similar series section (future addition)
 - [x] **Library Page** (authenticated)
   - [x] Status tabs (Watching, Plan, Completed, On Hold, Dropped) (live, filters real data)
-  - [ ] Content type filter
+  - [x] Content type filter
   - [ ] Card/list view toggle
   - [x] Progress tracking UI (increment episode/chapter, persists)
-  - [ ] Quick status change (from the library page itself — currently only settable via the series detail page's status picker)
+  - [x] Quick status change (status badge on each library card opens a dropdown, PATCHes the existing endpoint)
   - [x] Personal rating input (on series detail page, not yet surfaced on library cards)
   - [x] Remove from library (with confirm)
 - [x] **Auth Pages**
