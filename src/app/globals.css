@@ -1658,6 +1658,46 @@ img, video {
   margin-top: var(--space-4);
 }
 
+/* ─── Add to Library button ─── */
+.detail-add-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.detail-add-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.detail-add-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.detail-add-menu-item:hover {
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+.detail-add-error {
+  color: var(--color-danger, #ef4444);
+  font-size: 0.8125rem;
+  margin-top: var(--space-2);
+}
+
 /* ─── Auth Pages ─── */
 .auth-page {
   display: flex;

@@ -4,6 +4,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CONTENT_TYPE_BADGE_CLASS, CONTENT_TYPE_LABELS } from "@/types/common";
 import type { SeriesDetail, PlatformAvailability } from "@/types/series";
+import { getCurrentUser } from "@/lib/auth/helpers";
+import { prisma } from "@/lib/db/prisma";
+import { parseCompoundId } from "@/lib/db/series-cache";
+import AddToLibraryButton from "@/components/AddToLibraryButton";
+import type { LibraryStatus } from "@/types/common";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -58,6 +63,22 @@ export default async function SeriesDetailPage({ params }: PageProps) {
     );
   }
 
+  const user = await getCurrentUser();
+  let existingItem: { id: string; status: LibraryStatus } | null = null;
+
+  if (user) {
+    const { source, externalId } = parseCompoundId(id);
+    const seriesRow = await prisma.series.findUnique({
+      where: { externalId_source: { externalId, source } },
+    });
+    if (seriesRow) {
+      const itemRow = await prisma.libraryItem.findUnique({
+        where: { userId_seriesId: { userId: user.id, seriesId: seriesRow.id } },
+      });
+      if (itemRow) existingItem = { id: itemRow.id, status: itemRow.status };
+    }
+  }
+
   const statusLabels: Record<string, string> = {
     ONGOING: "Ongoing",
     COMPLETED: "Completed",
@@ -108,13 +129,11 @@ export default async function SeriesDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            {/* Add to Library button placeholder */}
-            <button className="btn btn-primary detail-add-btn" disabled title="Sign in to add to library">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
-              Add to Library
-            </button>
+            <AddToLibraryButton
+              compoundId={id}
+              initialItem={existingItem}
+              isSignedIn={!!user}
+            />
           </aside>
 
           {/* Info */}
