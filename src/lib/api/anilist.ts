@@ -14,7 +14,7 @@ import type { SearchResult } from "@/types/series";
 const ANILIST_URL = "https://graphql.anilist.co";
 
 /** Map AniList format to our ContentType */
-function mapFormat(format: string): ContentType {
+function mapFormat(format: string, countryOfOrigin?: string): ContentType {
   const map: Record<string, ContentType> = {
     TV: "ANIME",
     TV_SHORT: "ANIME",
@@ -23,10 +23,15 @@ function mapFormat(format: string): ContentType {
     OVA: "ANIME",
     ONA: "ANIME",
     MUSIC: "ANIME",
-    MANGA: "MANGA",
     NOVEL: "LIGHT_NOVEL",
-    ONE_SHOT: "MANGA",
   };
+  
+  if (format === "MANGA" || format === "ONE_SHOT") {
+    if (countryOfOrigin === "KR") return "MANHWA";
+    if (countryOfOrigin === "CN") return "MANHWA";
+    return "MANGA";
+  }
+  
   return map[format] ?? "ANIME";
 }
 
@@ -77,15 +82,16 @@ const SEARCH_QUERY = `
         averageScore
         episodes
         chapters
+        countryOfOrigin
       }
     }
   }
 `;
 
-const TRENDING_QUERY = `
-  query TrendingAnime($page: Int, $perPage: Int) {
+const TRENDING_MEDIA_QUERY = `
+  query TrendingMedia($type: MediaType, $format: MediaFormat, $countryOfOrigin: CountryCode, $page: Int, $perPage: Int) {
     Page(page: $page, perPage: $perPage) {
-      media(type: ANIME, sort: TRENDING_DESC, isAdult: false) {
+      media(type: $type, format: $format, countryOfOrigin: $countryOfOrigin, sort: TRENDING_DESC, isAdult: false) {
         id
         title { romaji english native }
         format
@@ -95,6 +101,8 @@ const TRENDING_QUERY = `
         genres
         averageScore
         episodes
+        chapters
+        countryOfOrigin
       }
     }
   }
@@ -113,6 +121,7 @@ interface AniListMedia {
   averageScore?: number;
   episodes?: number;
   chapters?: number;
+  countryOfOrigin?: string;
 }
 
 interface AniListPage<T> {
@@ -140,7 +149,7 @@ export async function searchAniList(
   const results: SearchResult[] = data.Page.media.map((item) => ({
     externalId: String(item.id),
     source: "anilist",
-    contentType: mapFormat(item.format),
+    contentType: mapFormat(item.format, item.countryOfOrigin),
     title: item.title.english ?? item.title.romaji,
     titleOriginal: item.title.native,
     coverImage: item.coverImage.large,
@@ -157,23 +166,55 @@ export async function searchAniList(
   };
 }
 
+/** Get trending media (anime, manga, light novel, manhwa) from AniList */
+async function getTrendingMedia(
+  type: "ANIME" | "MANGA",
+  format?: string,
+  countryOfOrigin?: string
+): Promise<SearchResult[]> {
+  try {
+    const data = await anilistFetch<AniListPage<AniListMedia>>(TRENDING_MEDIA_QUERY, {
+      type,
+      format,
+      countryOfOrigin,
+      page: 1,
+      perPage: 12,
+    });
+
+    return data.Page.media.map((item) => ({
+      externalId: String(item.id),
+      source: "anilist",
+      contentType: mapFormat(item.format, item.countryOfOrigin),
+      title: item.title.english ?? item.title.romaji,
+      titleOriginal: item.title.native,
+      coverImage: item.coverImage.large,
+      year: item.startDate.year,
+      genres: item.genres,
+      status: mapStatus(item.status),
+      ratingExternal: item.averageScore ? item.averageScore / 10 : undefined,
+    }));
+  } catch (err) {
+    console.error(`[AniList] Trending fetch failed for ${type} (${format}):`, err);
+    return [];
+  }
+}
+
 /** Get trending anime from AniList */
 export async function getTrendingAnime(): Promise<SearchResult[]> {
-  const data = await anilistFetch<AniListPage<AniListMedia>>(TRENDING_QUERY, {
-    page: 1,
-    perPage: 20,
-  });
+  return getTrendingMedia("ANIME");
+}
 
-  return data.Page.media.map((item) => ({
-    externalId: String(item.id),
-    source: "anilist",
-    contentType: mapFormat(item.format),
-    title: item.title.english ?? item.title.romaji,
-    titleOriginal: item.title.native,
-    coverImage: item.coverImage.large,
-    year: item.startDate.year,
-    genres: item.genres,
-    status: mapStatus(item.status),
-    ratingExternal: item.averageScore ? item.averageScore / 10 : undefined,
-  }));
+/** Get trending manga from AniList (specifically JP) */
+export async function getTrendingManga(): Promise<SearchResult[]> {
+  return getTrendingMedia("MANGA", "MANGA", "JP");
+}
+
+/** Get trending manhwa / webtoons from AniList (specifically KR) */
+export async function getTrendingManhwa(): Promise<SearchResult[]> {
+  return getTrendingMedia("MANGA", "MANGA", "KR");
+}
+
+/** Get trending light novels from AniList */
+export async function getTrendingNovel(): Promise<SearchResult[]> {
+  return getTrendingMedia("MANGA", "NOVEL");
 }

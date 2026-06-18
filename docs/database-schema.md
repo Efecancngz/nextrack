@@ -1,127 +1,122 @@
 # Database Schema Design — Free Serie Tracker
 
+This document describes the structured database schema used by **Free Serie Tracker** to store user accounts, authentication sessions, tracking lists, personal ratings, and the metadata cache.
+
+The database uses a simplified, normalized relational structure optimized for Next.js App Router and serverless deployment targets (like Neon PostgreSQL).
+
+---
+
 ## Entity Relationship Diagram
+
+The following Mermaid ER Diagram models the tables and relationships defined in the Prisma schema:
 
 ```mermaid
 erDiagram
-    User ||--o{ UserLibrary : has
-    User ||--o{ UserRating : rates
     User ||--o{ Account : has
     User ||--o{ Session : has
-    
-    UserLibrary ||--|| Series : references
-    UserLibrary ||--o| Progress : tracks
-    UserRating ||--|| Series : rates
-    
-    Series ||--o{ SeriesPlatform : available_on
-    Series ||--o{ ExternalRating : has
-    Series ||--o{ Genre : tagged_with
-    
+    User ||--o{ LibraryItem : tracks
+    User ||--o{ UserRating : rates
+
+    Series ||--o{ LibraryItem : references
+    Series ||--o{ UserRating : references
+
     User {
-        string id PK
-        string name
-        string email UK
-        string emailVerified
-        string image
-        string hashedPassword
-        datetime createdAt
-        datetime updatedAt
+        String id PK
+        String name
+        String email UK
+        DateTime emailVerified
+        String image
+        String passwordHash
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     Account {
-        string id PK
-        string userId FK
-        string type
-        string provider
-        string providerAccountId
-        string access_token
-        string refresh_token
-        int expires_at
+        String userId FK
+        String type
+        String provider
+        String providerAccountId
+        String refresh_token
+        String access_token
+        Int expires_at
+        String token_type
+        String scope
+        String id_token
+        String session_state
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     Session {
-        string id PK
-        string sessionToken UK
-        string userId FK
-        datetime expires
+        String sessionToken UK
+        String userId FK
+        DateTime expires
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    VerificationToken {
+        String identifier
+        String token
+        DateTime expires
     }
 
     Series {
-        string id PK
-        string externalId
-        string externalSource
-        string contentType
-        string title
-        string originalTitle
-        string description
-        string posterUrl
-        string bannerUrl
-        string status
-        int totalEpisodes
-        int totalChapters
-        int totalSeasons
-        int totalVolumes
-        float externalRating
-        datetime startDate
-        datetime endDate
-        datetime createdAt
-        datetime updatedAt
+        String id PK
+        String externalId UK
+        String source UK
+        ContentType contentType
+        ContentStatus status
+        String title
+        String titleOriginal
+        String titleRomaji
+        String synopsis
+        String coverImage
+        String bannerImage
+        String[] genres
+        String[] tags
+        Int year
+        String season
+        Int totalEpisodes
+        Int totalChapters
+        Int totalVolumes
+        Float ratingExternal
+        Float ratingTmdb
+        Float ratingAniList
+        Float ratingImdb
+        Float ratingMal
+        Json platforms
+        DateTime cachedAt
+        DateTime updatedAt
     }
 
-    UserLibrary {
-        string id PK
-        string userId FK
-        string seriesId FK
-        string status
-        boolean isFavorite
-        datetime addedAt
-        datetime updatedAt
-    }
-
-    Progress {
-        string id PK
-        string userLibraryId FK
-        int currentEpisode
-        int currentSeason
-        int currentChapter
-        int currentVolume
-        datetime lastUpdated
+    LibraryItem {
+        String id PK
+        String userId FK
+        String seriesId FK
+        LibraryStatus status
+        Int currentSeason
+        Int currentEpisode
+        Int currentChapter
+        Int currentVolume
+        DateTime startedAt
+        DateTime completedAt
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     UserRating {
-        string id PK
-        string userId FK
-        string seriesId FK
-        int score
-        string review
-        datetime createdAt
-        datetime updatedAt
-    }
-
-    ExternalRating {
-        string id PK
-        string seriesId FK
-        string source
-        float score
-        int voteCount
-        datetime fetchedAt
-    }
-
-    SeriesPlatform {
-        string id PK
-        string seriesId FK
-        string platformName
-        string platformUrl
-        string region
-        datetime fetchedAt
-    }
-
-    Genre {
-        string id PK
-        string seriesId FK
-        string name
+        String id PK
+        String userId FK
+        String seriesId FK
+        Int score
+        String review
+        DateTime createdAt
+        DateTime updatedAt
     }
 ```
+
+---
 
 ## Prisma Schema
 
@@ -129,68 +124,80 @@ erDiagram
 // prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-// ==================== AUTH MODELS (Auth.js) ====================
+// ─────────────────────────────────────────────────
+// Auth Models (Auth.js v5 required schema)
+// ─────────────────────────────────────────────────
 
 model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String    @unique
-  emailVerified  DateTime?
-  image          String?
-  hashedPassword String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?   // null for OAuth-only users
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  accounts    Account[]
-  sessions    Session[]
-  library     UserLibrary[]
-  ratings     UserRating[]
+  accounts      Account[]
+  sessions      Session[]
+  libraryItems  LibraryItem[]
+  userRatings   UserRating[]
+
+  @@index([email])
 }
 
 model Account {
-  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@id([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model VerificationToken {
   identifier String
-  token      String   @unique
+  token      String
   expires    DateTime
 
-  @@unique([identifier, token])
+  @@id([identifier, token])
 }
 
-// ==================== CONTENT MODELS ====================
+// ─────────────────────────────────────────────────
+// Content Types
+// ─────────────────────────────────────────────────
 
 enum ContentType {
   TV_SERIES
@@ -201,93 +208,112 @@ enum ContentType {
   WEBTOON
 }
 
-enum SeriesStatus {
-  ONGOING
-  COMPLETED
-  UPCOMING
-  HIATUS
-  CANCELLED
+enum ContentStatus {
+  ONGOING      // Currently airing/publishing
+  COMPLETED    // Finished
+  HIATUS       // On break
+  CANCELLED    // Cancelled/discontinued
+  UPCOMING     // Not yet started
 }
+
+// ─────────────────────────────────────────────────
+// Series (cached metadata from external APIs)
+// ─────────────────────────────────────────────────
 
 model Series {
-  id              String       @id @default(cuid())
-  externalId      String       // ID from external API (TMDB, AniList, etc.)
-  externalSource  String       // "tmdb", "anilist", "mangadex"
+  id              String        @id @default(cuid())
+  externalId      String        // ID from source API (TMDB id, AniList id, etc.)
+  source          String        // "tmdb" | "anilist" | "mangadex" | "jikan"
   contentType     ContentType
-  title           String
-  originalTitle   String?
-  description     String?      @db.Text
-  posterUrl       String?
-  bannerUrl       String?
-  status          SeriesStatus @default(ONGOING)
-  totalEpisodes   Int?
-  totalChapters   Int?
-  totalSeasons    Int?
-  totalVolumes    Int?
-  startDate       DateTime?
-  endDate         DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  status          ContentStatus @default(ONGOING)
 
-  genres          Genre[]
-  platforms       SeriesPlatform[]
-  externalRatings ExternalRating[]
-  libraryEntries  UserLibrary[]
+  // Core info
+  title           String
+  titleOriginal   String?
+  titleRomaji     String?
+  synopsis        String?
+  coverImage      String?       // URL
+  bannerImage     String?       // URL
+  genres          String[]      // ["Action", "Drama", ...]
+  tags            String[]      // ["Based on Manga", "School", ...]
+  year            Int?
+  season          String?       // "Spring 2024" for anime
+
+  // Episode / Chapter info
+  totalEpisodes   Int?          // null = unknown/ongoing
+  totalChapters   Int?          // for manga-type
+  totalVolumes    Int?          // for light novels
+
+  // External ratings (normalized 0.0 - 10.0)
+  ratingExternal  Float?        // avg of available sources
+  ratingTmdb      Float?
+  ratingAniList   Float?
+  ratingImdb      Float?
+  ratingMal       Float?
+
+  // Platform availability (stored as JSON)
+  // [{ platformId, platformName, url, region, subscriptionType }]
+  platforms       Json          @default("[]")
+
+  cachedAt        DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  libraryItems    LibraryItem[]
   userRatings     UserRating[]
 
-  @@unique([externalId, externalSource])
+  @@unique([externalId, source])
   @@index([contentType])
   @@index([title])
+  @@index([cachedAt])
 }
 
-model Genre {
-  id       String @id @default(cuid())
-  seriesId String
-  name     String
+// ─────────────────────────────────────────────────
+// Library (User's personal tracking)
+// ─────────────────────────────────────────────────
 
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-
-  @@index([name])
+enum LibraryStatus {
+  WATCHING     // Currently watching/reading
+  PLAN_TO_WATCH
+  COMPLETED
+  ON_HOLD
+  DROPPED
 }
 
-// ==================== PLATFORM AVAILABILITY ====================
-
-model SeriesPlatform {
-  id           String   @id @default(cuid())
-  seriesId     String
-  platformName String   // "Netflix", "Crunchyroll", "Disney+", etc.
-  platformLogo String?  // URL to platform logo
-  platformUrl  String?  // Deep link to content on platform
-  region       String   @default("US") // Country code
-  fetchedAt    DateTime @default(now())
-
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-
-  @@index([seriesId])
-  @@index([platformName])
-}
-
-// ==================== RATINGS ====================
-
-model ExternalRating {
-  id        String   @id @default(cuid())
+model LibraryItem {
+  id        String        @id @default(cuid())
+  userId    String
   seriesId  String
-  source    String   // "tmdb", "imdb", "anilist", "mal"
-  score     Float    // Normalized to 0-10 scale
-  voteCount Int      @default(0)
-  fetchedAt DateTime @default(now())
+  status    LibraryStatus @default(PLAN_TO_WATCH)
 
+  // Progress tracking
+  currentSeason   Int?   // For TV series
+  currentEpisode  Int?   // S2E5 → season=2, episode=5
+  currentChapter  Int?   // Ch.45
+  currentVolume   Int?   // Vol.3
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
-  @@unique([seriesId, source])
+  @@unique([userId, seriesId])
+  @@index([userId])
+  @@index([userId, status])
 }
+
+// ─────────────────────────────────────────────────
+// User Ratings (personal score 1-10)
+// ─────────────────────────────────────────────────
 
 model UserRating {
   id        String   @id @default(cuid())
   userId    String
   seriesId  String
   score     Int      // 1-10
-  review    String?  @db.Text
+  review    String?  // Optional written review
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -295,62 +321,7 @@ model UserRating {
   series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@unique([userId, seriesId])
-}
-
-// ==================== USER LIBRARY ====================
-
-enum LibraryStatus {
-  WATCHING      // Currently watching/reading
-  PLAN_TO_WATCH // Plan to watch/read
-  COMPLETED     // Finished
-  ON_HOLD       // Paused
-  DROPPED       // Abandoned
-}
-
-model UserLibrary {
-  id         String        @id @default(cuid())
-  userId     String
-  seriesId   String
-  status     LibraryStatus @default(PLAN_TO_WATCH)
-  isFavorite Boolean       @default(false)
-  addedAt    DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series   Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  progress Progress?
-
-  @@unique([userId, seriesId])
-  @@index([userId, status])
-}
-
-model Progress {
-  id             String   @id @default(cuid())
-  userLibraryId  String   @unique
-  currentEpisode Int      @default(0)
-  currentSeason  Int      @default(1)
-  currentChapter Int      @default(0)
-  currentVolume  Int      @default(1)
-  lastUpdated    DateTime @default(now())
-
-  library UserLibrary @relation(fields: [userLibraryId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([seriesId])
 }
 ```
-
-## Indexes & Performance Notes
-
-- **Series**: Indexed on `contentType` and `title` for fast filtering and search
-- **UserLibrary**: Composite index on `[userId, status]` for efficient list queries
-- **Genre**: Indexed on `name` for genre-based filtering
-- **SeriesPlatform**: Indexed on `seriesId` and `platformName`
-- **Unique constraints** prevent duplicate library entries and ratings per user/series
-
-## Data Normalization Notes
-
-- **Ratings**: All external ratings are normalized to a 0-10 scale
-  - TMDB: Already 0-10
-  - AniList: 0-100 → divide by 10
-  - MAL: Already 0-10
-  - IMDb: Already 0-10
-- **Series deduplication**: `@@unique([externalId, externalSource])` prevents the same series from being stored twice from the same source
-- **Progress tracking**: Single `Progress` model handles all content types. TV series uses `currentSeason` + `currentEpisode`, manga/manhwa uses `currentChapter`, light novels use `currentVolume` + `currentChapter`

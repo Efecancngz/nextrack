@@ -45,3 +45,9 @@ src/generated/
 
 # Agent-only local config (not for Git)
 CLAUDE.md
+ai-instructions.md
+AGENTS.md
+
+# Docker local data (if bind mounts are used)
+.docker/
+postgres_data/

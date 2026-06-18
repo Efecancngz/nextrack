@@ -430,6 +430,126 @@ export class ContentProviderFactory {
 export const contentProviders = new ContentProviderFactory();
 ```
 
+### 3.1. Strategy Pattern — AI Recommendation Engines (Phase 2.7)
+
+**Neden?** Yapay zeka servis sağlayıcıları (Gemini, OpenAI, Anthropic) ve API anahtarları zamanla değişebilir veya müşteri farklı bir modele geçmek isteyebilir. AI motorunu soyutlayarak:
+- Sağlayıcılar arası dinamik geçiş (Gemini ↔ OpenAI) sadece `.env` dosyasındaki `AI_PROVIDER` değişkenini değiştirmek kadar kolaylaşır.
+- İş mantığı (AI Search / Recommendation) hangi yapay zeka modelinin çalıştığını bilmek zorunda kalmaz.
+- Mock AI sağlayıcılar yazılarak testler kolayca gerçekleştirilebilir.
+
+```mermaid
+classDiagram
+    class AiProvider {
+        <<interface>>
+        +providerName: string
+        +generateRecommendation(prompt: string, context: string): Promise~AiResult~
+        +generateEmbeddings(text: string): Promise~number[]~
+    }
+
+    class GeminiAiProvider {
+        +providerName: "gemini"
+        -apiKey: string
+    }
+
+    class OpenAiProvider {
+        +providerName: "openai"
+        -apiKey: string
+    }
+
+    class AiProviderFactory {
+        -providers: Map~string, AiProvider~
+        +getProvider(): AiProvider
+    }
+
+    AiProvider <|.. GeminiAiProvider
+    AiProvider <|.. OpenAiProvider
+    AiProviderFactory --> AiProvider
+```
+
+#### Örnek Implementasyon
+
+```typescript
+// src/lib/providers/ai/ai-provider.interface.ts
+export interface AiResult {
+  explanation: string;
+}
+
+export interface AiProvider {
+  readonly providerName: string;
+  generateRecommendation(prompt: string, context: string): Promise<AiResult>;
+  generateEmbeddings(text: string): Promise<number[]>;
+}
+
+// src/lib/providers/ai/gemini.provider.ts
+import { AiProvider, AiResult } from "./ai-provider.interface";
+
+export class GeminiAiProvider implements AiProvider {
+  readonly providerName = "gemini";
+  private apiKey: string;
+
+  constructor() {
+    this.apiKey = process.env.GEMINI_API_KEY || "";
+  }
+
+  async generateRecommendation(prompt: string, context: string): Promise<AiResult> {
+    // Gemini API call...
+    return { explanation: "Gemini recommendations based on context..." };
+  }
+
+  async generateEmbeddings(text: string): Promise<number[]> {
+    // Gemini text-embedding-004 vector generation (1536 dim)
+    return new Array(1536).fill(0);
+  }
+}
+
+// src/lib/providers/ai/openai.provider.ts
+import { AiProvider, AiResult } from "./ai-provider.interface";
+
+export class OpenAiProvider implements AiProvider {
+  readonly providerName = "openai";
+  private apiKey: string;
+
+  constructor() {
+    this.apiKey = process.env.OPENAI_API_KEY || "";
+  }
+
+  async generateRecommendation(prompt: string, context: string): Promise<AiResult> {
+    // OpenAI gpt-4o API call...
+    return { explanation: "OpenAI recommendations based on context..." };
+  }
+
+  async generateEmbeddings(text: string): Promise<number[]> {
+    // OpenAI text-embedding-3-small vector generation (1536 dim)
+    return new Array(1536).fill(0);
+  }
+}
+
+// src/lib/providers/ai/ai-factory.ts
+import { AiProvider } from "./ai-provider.interface";
+import { GeminiAiProvider } from "./gemini.provider";
+import { OpenAiProvider } from "./openai.provider";
+
+export class AiProviderFactory {
+  private providers = new Map<string, AiProvider>();
+
+  constructor() {
+    this.providers.set("gemini", new GeminiAiProvider());
+    this.providers.set("openai", new OpenAiProvider());
+  }
+
+  getProvider(): AiProvider {
+    const selected = process.env.AI_PROVIDER || "gemini";
+    const provider = this.providers.get(selected);
+    if (!provider) {
+      throw new Error(`AI Provider not configured: ${selected}`);
+    }
+    return provider;
+  }
+}
+
+export const aiProvider = new AiProviderFactory().getProvider();
+```
+
 ---
 
 ## 4. Service Layer Pattern

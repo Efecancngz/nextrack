@@ -10,13 +10,14 @@
 import { AppError } from "@/lib/utils/app-error";
 import type { ContentType, ContentStatus } from "@/types/common";
 import type { SearchResult, PlatformAvailability } from "@/types/series";
+import { getMockTrendingTvSeries, MOCK_TV_SHOWS, searchMockTvSeries } from "./tmdb-mock";
 
 const TMDB_BASE = process.env.TMDB_BASE_URL || "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 const API_KEY = process.env.TMDB_API_KEY;
 
 /** Map TMDB status string to our ContentStatus */
-function mapTmdbStatus(status: string): ContentStatus {
+export function mapTmdbStatus(status: string): ContentStatus {
   const map: Record<string, ContentStatus> = {
     "Returning Series": "ONGOING",
     "In Production": "UPCOMING",
@@ -122,6 +123,16 @@ export async function searchTvSeries(
   query: string,
   page = 1
 ): Promise<{ results: SearchResult[]; total: number; totalPages: number }> {
+  if (!API_KEY) {
+    console.warn("[TMDB] TMDB_API_KEY is not configured. Returning matching mock results.");
+    const results = searchMockTvSeries(query);
+    return {
+      results,
+      total: results.length,
+      totalPages: 1,
+    };
+  }
+
   const data = await tmdbFetch<TmdbSearchResponse>("/search/tv", {
     query,
     page: String(page),
@@ -154,6 +165,38 @@ export async function getTvSeriesDetail(tmdbId: string): Promise<{
   detail: Partial<TmdbTvDetail>;
   platforms: PlatformAvailability[];
 }> {
+  if (!API_KEY) {
+    const mock = MOCK_TV_SHOWS[tmdbId];
+    if (mock) {
+      console.warn(`[TMDB] TMDB_API_KEY is not configured. Returning mock details for series ID ${tmdbId}.`);
+      return {
+        detail: {
+          id: mock.id,
+          name: mock.name,
+          original_name: mock.original_name,
+          tagline: mock.tagline,
+          overview: mock.overview,
+          poster_path: mock.poster_path,
+          backdrop_path: mock.backdrop_path,
+          first_air_date: mock.first_air_date,
+          genres: mock.genres,
+          keywords: mock.keywords,
+          status: mock.status,
+          number_of_episodes: mock.number_of_episodes,
+          number_of_seasons: mock.number_of_seasons,
+          vote_average: mock.vote_average,
+          vote_count: mock.vote_count,
+        },
+        platforms: mock.platforms.map((p) => ({
+          ...p,
+          platformLogo: tmdbImage(p.platformLogo, "w92"),
+        })),
+      };
+    }
+    console.warn("[TMDB] TMDB_API_KEY is not configured. Returning empty detail.");
+    return { detail: {}, platforms: [] };
+  }
+
   const [detail, providers] = await Promise.all([
     tmdbFetch<TmdbTvDetail>(`/tv/${tmdbId}`, {
       language: "en-US",
@@ -197,6 +240,11 @@ export async function getTvSeriesDetail(tmdbId: string): Promise<{
 
 /** Get trending TV series (week) */
 export async function getTrendingTvSeries(): Promise<SearchResult[]> {
+  if (!API_KEY) {
+    console.warn("[TMDB] TMDB_API_KEY is not configured. Returning mock trending list.");
+    return getMockTrendingTvSeries();
+  }
+
   const data = await tmdbFetch<TmdbSearchResponse>("/trending/tv/week", {
     language: "en-US",
   });
@@ -214,3 +262,4 @@ export async function getTrendingTvSeries(): Promise<SearchResult[]> {
     ratingExternal: item.vote_average > 0 ? item.vote_average : undefined,
   }));
 }
+

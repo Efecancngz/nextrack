@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans, Geist } from "next/font/google";
+import { Plus_Jakarta_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+/* Geist — body text (--font-sans) */
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
+/* Plus Jakarta Sans — display headings (--font-display) */
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-plus-jakarta",
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -65,7 +63,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(inter.variable, plusJakartaSans.variable, "font-sans", geist.variable)}
+      className={cn(geist.variable, plusJakartaSans.variable, "font-sans")}
       suppressHydrationWarning
     >
       <head>
@@ -87,7 +85,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-dvh flex flex-col antialiased">
-        {children}
+        <Navbar />
+
+        <main className="flex-1">
+          {children}
+        </main>
+
+        <Footer />
 
         {/* Google AdSense — production only */}
         {process.env.NODE_ENV === "production" &&
