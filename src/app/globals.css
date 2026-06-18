@@ -1518,6 +1518,20 @@ img, video {
   color: #fff;
 }
 
+/* ─── Explore load more ─── */
+.explore-load-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.explore-load-more-error {
+  color: var(--color-danger, #ef4444);
+  font-size: 0.8125rem;
+}
+
 /* ─── Series Detail Page ─── */
 .detail-hero {
   position: relative;

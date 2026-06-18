@@ -18,6 +18,10 @@ export default function ExplorePage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window === "undefined") return "grid";
@@ -43,26 +47,54 @@ export default function ExplorePage() {
     if (q.length < 2) {
       setResults([]);
       setSearched(false);
+      setPage(1);
+      setTotal(0);
       return;
     }
 
     setLoading(true);
     setSearched(true);
+    setLoadMoreError(null);
 
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&type=${t}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&type=${t}&page=1`);
       const data = await res.json();
       if (data.success) {
         setResults(data.data.results || []);
+        setTotal(data.data.total || 0);
+        setPage(1);
       } else {
         setResults([]);
+        setTotal(0);
       }
     } catch {
       setResults([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  async function handleLoadMore() {
+    setLoadingMore(true);
+    setLoadMoreError(null);
+    const nextPage = page + 1;
+
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}&page=${nextPage}`);
+      const data = await res.json();
+      if (data.success) {
+        setResults((prev) => [...prev, ...(data.data.results || [])]);
+        setPage(nextPage);
+      } else {
+        setLoadMoreError(data.error || "Failed to load more results");
+      }
+    } catch {
+      setLoadMoreError("Failed to load more results");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   // Debounced search
   useEffect(() => {
@@ -178,19 +210,37 @@ export default function ExplorePage() {
             ))}
           </div>
         ) : results.length > 0 ? (
-          viewMode === "grid" ? (
-            <div className="series-grid">
-              {results.map((item) => (
-                <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
-              ))}
-            </div>
-          ) : (
-            <div className="series-list">
-              {results.map((item) => (
-                <SeriesListRow key={`${item.source}-${item.externalId}`} series={item} />
-              ))}
-            </div>
-          )
+          <>
+            {viewMode === "grid" ? (
+              <div className="series-grid">
+                {results.map((item) => (
+                  <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
+                ))}
+              </div>
+            ) : (
+              <div className="series-list">
+                {results.map((item) => (
+                  <SeriesListRow key={`${item.source}-${item.externalId}`} series={item} />
+                ))}
+              </div>
+            )}
+
+            {results.length < total && (
+              <div className="explore-load-more">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "Loading..." : "Load More"}
+                </button>
+                {loadMoreError && (
+                  <p className="explore-load-more-error">{loadMoreError}</p>
+                )}
+              </div>
+            )}
+          </>
         ) : searched ? (
           <div className="explore-empty">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.3">
