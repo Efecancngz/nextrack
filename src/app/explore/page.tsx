@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import SeriesCard from "@/components/SeriesCard";
+import SeriesListRow from "@/components/SeriesListRow";
 import type { SearchResult } from "@/types/series";
 
 const CONTENT_TABS = [
@@ -18,6 +19,25 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    if (typeof window === "undefined") return "grid";
+    try {
+      const stored = window.localStorage.getItem("explore-view-mode");
+      if (stored === "grid" || stored === "list") return stored;
+    } catch {
+      // localStorage unavailable (private browsing, disabled storage) — keep default "grid"
+    }
+    return "grid";
+  });
+
+  function handleViewModeChange(mode: "grid" | "list") {
+    setViewMode(mode);
+    try {
+      window.localStorage.setItem("explore-view-mode", mode);
+    } catch {
+      // localStorage unavailable — preference just won't persist this session
+    }
+  }
 
   const search = useCallback(async (q: string, t: string) => {
     if (q.length < 2) {
@@ -102,19 +122,51 @@ export default function ExplorePage() {
         )}
       </div>
 
-      {/* Content type tabs */}
-      <div className="explore-tabs" role="tablist">
-        {CONTENT_TABS.map(({ value, label }) => (
+      {/* Content type tabs + view toggle */}
+      <div className="explore-toolbar">
+        <div className="explore-tabs" role="tablist">
+          {CONTENT_TABS.map(({ value, label }) => (
+            <button
+              key={value}
+              role="tab"
+              aria-selected={type === value}
+              className={`explore-tab ${type === value ? "explore-tab-active" : ""}`}
+              onClick={() => setType(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="explore-view-toggle" role="group" aria-label="View mode">
           <button
-            key={value}
-            role="tab"
-            aria-selected={type === value}
-            className={`explore-tab ${type === value ? "explore-tab-active" : ""}`}
-            onClick={() => setType(value)}
+            type="button"
+            className={`explore-view-toggle-btn ${viewMode === "grid" ? "explore-view-toggle-btn-active" : ""}`}
+            onClick={() => handleViewModeChange("grid")}
+            aria-label="Grid view"
+            aria-pressed={viewMode === "grid"}
           >
-            {label}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+            </svg>
           </button>
-        ))}
+          <button
+            type="button"
+            className={`explore-view-toggle-btn ${viewMode === "list" ? "explore-view-toggle-btn-active" : ""}`}
+            onClick={() => handleViewModeChange("list")}
+            aria-label="List view"
+            aria-pressed={viewMode === "list"}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Results */}
@@ -126,11 +178,19 @@ export default function ExplorePage() {
             ))}
           </div>
         ) : results.length > 0 ? (
-          <div className="series-grid">
-            {results.map((item) => (
-              <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
-            ))}
-          </div>
+          viewMode === "grid" ? (
+            <div className="series-grid">
+              {results.map((item) => (
+                <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="series-list">
+              {results.map((item) => (
+                <SeriesListRow key={`${item.source}-${item.externalId}`} series={item} />
+              ))}
+            </div>
+          )
         ) : searched ? (
           <div className="explore-empty">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.3">

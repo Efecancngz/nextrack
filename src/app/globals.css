@@ -1475,6 +1475,49 @@ img, video {
   flex-shrink: 0;
 }
 
+/* ─── Explore toolbar + view toggle ─── */
+.explore-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.explore-toolbar .explore-tabs {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.explore-view-toggle {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+
+.explore-view-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.explore-view-toggle-btn:hover {
+  color: var(--color-text-primary);
+}
+.explore-view-toggle-btn-active {
+  background: var(--color-brand);
+  color: #fff;
+}
+
 /* ─── Series Detail Page ─── */
 .detail-hero {
   position: relative;
