@@ -81,9 +81,9 @@ Single developer project — prioritize working features over perfect code.
   - [x] Search bar with debounced input (350ms)
   - [x] Filter sidebar/tabs (type, status)
   - [x] Card grid view
-  - [ ] Compact list view
-  - [ ] View mode toggle
-  - [ ] Pagination
+  - [x] Compact list view
+  - [x] View mode toggle (grid/list, persisted via localStorage)
+  - [x] Pagination ("Load More")
 - [x] **Series Detail Page**
   - [x] Hero banner with poster
   - [x] Description, genres, status

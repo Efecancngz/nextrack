@@ -156,7 +156,15 @@ export default function ExplorePage() {
         {query && (
           <button
             className="explore-search-clear"
-            onClick={() => { setQuery(""); setResults([]); setSearched(false); }}
+            onClick={() => {
+              requestIdRef.current++;
+              setQuery("");
+              setResults([]);
+              setSearched(false);
+              setPage(1);
+              setTotal(0);
+              setLoadMoreError(null);
+            }}
             aria-label="Clear search"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
