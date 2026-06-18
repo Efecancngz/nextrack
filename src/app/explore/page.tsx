@@ -23,6 +23,7 @@ export default function ExplorePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window === "undefined") return "grid";
     try {
@@ -44,6 +45,10 @@ export default function ExplorePage() {
   }
 
   const search = useCallback(async (q: string, t: string) => {
+    // Bump the request generation so any in-flight load-more fetch from a
+    // previous search becomes stale and discards its response on arrival.
+    const requestId = ++requestIdRef.current;
+
     if (q.length < 2) {
       setResults([]);
       setSearched(false);
@@ -59,6 +64,7 @@ export default function ExplorePage() {
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&type=${t}&page=1`);
       const data = await res.json();
+      if (requestIdRef.current !== requestId) return;
       if (data.success) {
         setResults(data.data.results || []);
         setTotal(data.data.total || 0);
@@ -68,14 +74,17 @@ export default function ExplorePage() {
         setTotal(0);
       }
     } catch {
+      if (requestIdRef.current !== requestId) return;
       setResults([]);
       setTotal(0);
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
   }, []);
 
   async function handleLoadMore() {
+    if (loadingMore) return;
+    const requestId = requestIdRef.current;
     setLoadingMore(true);
     setLoadMoreError(null);
     const nextPage = page + 1;
@@ -83,6 +92,7 @@ export default function ExplorePage() {
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}&page=${nextPage}`);
       const data = await res.json();
+      if (requestIdRef.current !== requestId) return;
       if (data.success) {
         setResults((prev) => [...prev, ...(data.data.results || [])]);
         setPage(nextPage);
@@ -90,8 +100,10 @@ export default function ExplorePage() {
         setLoadMoreError(data.error || "Failed to load more results");
       }
     } catch {
-      setLoadMoreError("Failed to load more results");
+      if (requestIdRef.current === requestId) setLoadMoreError("Failed to load more results");
     } finally {
+      // Always release the loading flag, even if a newer search superseded
+      // this request — otherwise the button stays disabled forever.
       setLoadingMore(false);
     }
   }
