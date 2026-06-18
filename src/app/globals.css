@@ -1733,6 +1733,46 @@ img, video {
   margin-top: var(--space-2);
 }
 
+/* ─── Library card actions ─── */
+.library-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.library-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.library-card-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  cursor: pointer;
+}
+
+.library-card-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+}
+
+.btn-danger {
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+  border: none;
+}
+
+
 
 /* ─── Auth Pages ─── */
 .auth-page {
