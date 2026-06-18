@@ -1967,6 +1967,11 @@ img, video {
   background: var(--color-bg-hover, rgba(255, 255, 255, 0.06));
 }
 
+/* ─── Library content-type tab row ─── */
+.library-content-tabs {
+  margin-top: calc(-1 * var(--space-3));
+}
+
 /* ─── Auth Pages ─── */
 .auth-page {
   display: flex;
