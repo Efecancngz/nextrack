@@ -3,8 +3,16 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { LIBRARY_STATUS_BADGE_CLASS, LIBRARY_STATUS_LABELS } from "@/types/common";
+import { LIBRARY_STATUS_BADGE_CLASS, LIBRARY_STATUS_LABELS, type LibraryStatus } from "@/types/common";
 import type { LibraryEntry } from "@/types/library";
+
+const STATUS_OPTIONS: LibraryStatus[] = [
+  "WATCHING",
+  "PLAN_TO_WATCH",
+  "COMPLETED",
+  "ON_HOLD",
+  "DROPPED",
+];
 
 interface LibraryItemCardProps {
   entry: LibraryEntry;
@@ -27,6 +35,7 @@ function getProgressField(
 export default function LibraryItemCard({ entry, onRemoved, onUpdated }: LibraryItemCardProps) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const href = `/series/${entry.series.source}-${entry.series.externalId}`;
   const progress = getProgressField(entry);
 
@@ -62,8 +71,53 @@ export default function LibraryItemCard({ entry, onRemoved, onUpdated }: Library
     }
   }
 
+  async function handleStatusChange(newStatus: LibraryStatus) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/library/${entry.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onUpdated({ ...entry, status: newStatus });
+      }
+    } finally {
+      setBusy(false);
+      setStatusMenuOpen(false);
+    }
+  }
+
   return (
     <article className="poster-card library-card">
+      <div className="library-status-wrapper">
+        <button
+          type="button"
+          className={`badge ${LIBRARY_STATUS_BADGE_CLASS[entry.status]} library-status-badge`}
+          onClick={() => setStatusMenuOpen((o) => !o)}
+          disabled={busy}
+        >
+          {LIBRARY_STATUS_LABELS[entry.status]}
+        </button>
+        {statusMenuOpen && (
+          <div className="library-status-menu" role="menu">
+            {STATUS_OPTIONS.filter((s) => s !== entry.status).map((status) => (
+              <button
+                key={status}
+                type="button"
+                role="menuitem"
+                className="library-status-menu-item"
+                onClick={() => handleStatusChange(status)}
+                disabled={busy}
+              >
+                {LIBRARY_STATUS_LABELS[status]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <Link href={href} className="series-card-link">
         {entry.series.coverImage ? (
           <Image
@@ -78,9 +132,6 @@ export default function LibraryItemCard({ entry, onRemoved, onUpdated }: Library
         )}
         <div className="poster-overlay" />
         <div className="poster-card-info">
-          <span className={`badge ${LIBRARY_STATUS_BADGE_CLASS[entry.status]}`}>
-            {LIBRARY_STATUS_LABELS[entry.status]}
-          </span>
           <h3 className="poster-card-title">{entry.series.title}</h3>
         </div>
       </Link>
