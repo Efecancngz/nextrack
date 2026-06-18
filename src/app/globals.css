@@ -1698,6 +1698,42 @@ img, video {
   margin-top: var(--space-2);
 }
 
+/* ─── Rating widget ─── */
+.detail-rating-widget {
+  margin-top: var(--space-6);
+}
+
+.detail-rating-input-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.detail-rating-select {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.detail-rating-review {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  resize: vertical;
+}
+
+.detail-rating-saved {
+  color: var(--color-completed, #22c55e);
+  font-size: 0.8125rem;
+  margin-top: var(--space-2);
+}
+
+
 /* ─── Auth Pages ─── */
 .auth-page {
   display: flex;
