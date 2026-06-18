@@ -1,0 +1,55 @@
+import { type NextRequest } from "next/server";
+import { prisma } from "@/lib/db/prisma";
+import { requireAuth } from "@/lib/auth/helpers";
+import { updateLibraryStatusSchema } from "@/lib/validations/library";
+import { AppError } from "@/lib/utils/app-error";
+import { successResponse, Responses } from "@/lib/utils/api-response";
+import { withErrorHandler, withRateLimit, compose } from "@/lib/utils/middleware";
+
+async function getOwnedItem(id: string, userId: string) {
+  const item = await prisma.libraryItem.findUnique({ where: { id } });
+  if (!item || item.userId !== userId) {
+    throw AppError.notFound("Library item");
+  }
+  return item;
+}
+
+async function patchHandler(
+  req: NextRequest,
+  { params }: { params: Promise<Record<string, string>> }
+) {
+  const user = await requireAuth();
+  const { id } = await params;
+
+  await getOwnedItem(id, user.id);
+
+  const body = await req.json().catch(() => null);
+  const parsed = updateLibraryStatusSchema.safeParse(body);
+  if (!parsed.success) {
+    return Responses.validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const updated = await prisma.libraryItem.update({
+    where: { id },
+    data: { status: parsed.data.status },
+  });
+
+  return successResponse(updated);
+}
+
+async function deleteHandler(
+  req: NextRequest,
+  { params }: { params: Promise<Record<string, string>> }
+) {
+  const user = await requireAuth();
+  const { id } = await params;
+
+  await getOwnedItem(id, user.id);
+
+  await prisma.libraryItem.delete({ where: { id } });
+
+  return successResponse({ id });
+}
+
+export const PATCH = compose(withErrorHandler, withRateLimit)(patchHandler);
+export const DELETE = compose(withErrorHandler, withRateLimit)(deleteHandler);

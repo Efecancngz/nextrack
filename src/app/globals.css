@@ -1658,6 +1658,122 @@ img, video {
   margin-top: var(--space-4);
 }
 
+/* ─── Add to Library button ─── */
+.detail-add-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.detail-add-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.detail-add-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.detail-add-menu-item:hover {
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+.detail-add-error {
+  color: var(--color-danger, #ef4444);
+  font-size: 0.8125rem;
+  margin-top: var(--space-2);
+}
+
+/* ─── Rating widget ─── */
+.detail-rating-widget {
+  margin-top: var(--space-6);
+}
+
+.detail-rating-input-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.detail-rating-select {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.detail-rating-review {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  resize: vertical;
+}
+
+.detail-rating-saved {
+  color: var(--color-completed, #22c55e);
+  font-size: 0.8125rem;
+  margin-top: var(--space-2);
+}
+
+/* ─── Library card actions ─── */
+.library-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.library-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.library-card-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  cursor: pointer;
+}
+
+.library-card-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+}
+
+.btn-danger {
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+  border: none;
+}
+
+
+
 /* ─── Auth Pages ─── */
 .auth-page {
   display: flex;
