@@ -79,44 +79,49 @@ async function getMyReleases(): Promise<CalendarEntry[]> {
   const user = await getCurrentUser();
   if (!user) return [];
 
-  const items = await prisma.libraryItem.findMany({
-    where: { userId: user.id },
-    include: { series: true },
-  });
+  try {
+    const items = await prisma.libraryItem.findMany({
+      where: { userId: user.id },
+      include: { series: true },
+    });
 
-  const entries: LibraryEntry[] = items.map((item) => ({
-    id: item.id,
-    userId: item.userId,
-    seriesId: item.seriesId,
-    status: item.status,
-    isFavorite: item.isFavorite,
-    currentSeason: item.currentSeason ?? undefined,
-    currentEpisode: item.currentEpisode ?? undefined,
-    currentChapter: item.currentChapter ?? undefined,
-    currentVolume: item.currentVolume ?? undefined,
-    startedAt: item.startedAt?.toISOString(),
-    completedAt: item.completedAt?.toISOString(),
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
-    series: {
-      id: item.series.id,
-      externalId: item.series.externalId,
-      source: item.series.source,
-      contentType: item.series.contentType,
-      status: item.series.status,
-      title: item.series.title,
-      titleOriginal: item.series.titleOriginal ?? undefined,
-      coverImage: item.series.coverImage ?? undefined,
-      year: item.series.year ?? undefined,
-      genres: item.series.genres,
-      ratingExternal: item.series.ratingExternal ?? undefined,
-      totalEpisodes: item.series.totalEpisodes ?? undefined,
-      totalChapters: item.series.totalChapters ?? undefined,
-      platforms: [],
-    },
-  }));
+    const entries: LibraryEntry[] = items.map((item) => ({
+      id: item.id,
+      userId: item.userId,
+      seriesId: item.seriesId,
+      status: item.status,
+      isFavorite: item.isFavorite,
+      currentSeason: item.currentSeason ?? undefined,
+      currentEpisode: item.currentEpisode ?? undefined,
+      currentChapter: item.currentChapter ?? undefined,
+      currentVolume: item.currentVolume ?? undefined,
+      startedAt: item.startedAt?.toISOString(),
+      completedAt: item.completedAt?.toISOString(),
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      series: {
+        id: item.series.id,
+        externalId: item.series.externalId,
+        source: item.series.source,
+        contentType: item.series.contentType,
+        status: item.series.status,
+        title: item.series.title,
+        titleOriginal: item.series.titleOriginal ?? undefined,
+        coverImage: item.series.coverImage ?? undefined,
+        year: item.series.year ?? undefined,
+        genres: item.series.genres,
+        ratingExternal: item.series.ratingExternal ?? undefined,
+        totalEpisodes: item.series.totalEpisodes ?? undefined,
+        totalChapters: item.series.totalChapters ?? undefined,
+        platforms: [],
+      },
+    }));
 
-  return getUpcomingReleases(entries);
+    return await getUpcomingReleases(entries);
+  } catch (err) {
+    console.error("[Home] Failed to load Airing Today releases:", err);
+    return [];
+  }
 }
 
 export default async function HomePage() {
