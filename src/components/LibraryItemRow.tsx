@@ -14,7 +14,7 @@ const STATUS_OPTIONS: LibraryStatus[] = [
   "DROPPED",
 ];
 
-interface LibraryItemCardProps {
+interface LibraryItemRowProps {
   entry: LibraryEntry;
   onRemoved: (id: string) => void;
   onUpdated: (entry: LibraryEntry) => void;
@@ -32,7 +32,7 @@ function getProgressField(
   return null;
 }
 
-export default function LibraryItemCard({ entry, onRemoved, onUpdated }: LibraryItemCardProps) {
+export default function LibraryItemRow({ entry, onRemoved, onUpdated }: LibraryItemRowProps) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [busy, setBusy] = useState(false);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
@@ -90,8 +90,33 @@ export default function LibraryItemCard({ entry, onRemoved, onUpdated }: Library
   }
 
   return (
-    <article className="poster-card library-card">
-      <div className="library-status-wrapper">
+    <article className="library-list-row">
+      <Link href={href} className="library-list-row-link">
+        <div className="series-list-thumb">
+          {entry.series.coverImage ? (
+            <Image
+              src={entry.series.coverImage}
+              alt={entry.series.title}
+              fill
+              sizes="48px"
+              className="series-list-thumb-img"
+            />
+          ) : (
+            <div className="series-list-thumb-placeholder">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="m21 15-5-5L5 21"/>
+              </svg>
+            </div>
+          )}
+        </div>
+        <div className="series-list-info">
+          <h3 className="series-list-title">{entry.series.title}</h3>
+        </div>
+      </Link>
+
+      <div className="library-row-status-wrapper">
         <button
           type="button"
           className={`badge ${LIBRARY_STATUS_BADGE_CLASS[entry.status]} library-status-badge`}
@@ -118,25 +143,7 @@ export default function LibraryItemCard({ entry, onRemoved, onUpdated }: Library
         )}
       </div>
 
-      <Link href={href} className="series-card-link">
-        {entry.series.coverImage ? (
-          <Image
-            src={entry.series.coverImage}
-            alt={entry.series.title}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
-            className="poster-card-img"
-          />
-        ) : (
-          <div className="poster-card-placeholder">No Image</div>
-        )}
-        <div className="poster-overlay" />
-        <div className="poster-card-info">
-          <h3 className="poster-card-title">{entry.series.title}</h3>
-        </div>
-      </Link>
-
-      <div className="library-card-actions">
+      <div className="library-row-actions">
         {progress && (
           <button
             type="button"

@@ -1475,6 +1475,50 @@ img, video {
   flex-shrink: 0;
 }
 
+/* ─── Library list view ─── */
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.library-list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  transition: border-color var(--transition-fast);
+}
+.library-list-row:hover {
+  border-color: var(--color-border-strong);
+}
+
+.library-list-row-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.library-row-status-wrapper {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.library-row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
 /* ─── Explore toolbar + view toggle ─── */
 .explore-toolbar {
   display: flex;
@@ -1920,7 +1964,57 @@ img, video {
   border: none;
 }
 
+/* ─── Library card status dropdown ─── */
+.library-status-wrapper {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 3;
+}
 
+.library-status-badge {
+  cursor: pointer;
+  border: none;
+}
+.library-status-badge:hover {
+  filter: brightness(1.1);
+}
+.library-status-badge:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.library-status-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  min-width: 140px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.library-status-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.library-status-menu-item:hover {
+  background: var(--color-bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+/* ─── Library content-type tab row ─── */
+.library-content-tabs {
+  margin-top: calc(-1 * var(--space-3));
+}
 
 /* ─── Auth Pages ─── */
 .auth-page {
