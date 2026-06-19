@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/config";
+import { edgeAuth } from "@/lib/auth/edge";
 
-export default auth((req) => {
+export default edgeAuth((req) => {
   const isLoggedIn = !!req.auth;
   const hasUsername = !!req.auth?.user?.username;
   const { pathname } = req.nextUrl;
@@ -37,6 +37,8 @@ export default auth((req) => {
 });
 
 export const config = {
+  runtime: "experimental-edge",
   // Run on all paths except API routes, static assets, and images
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
+
