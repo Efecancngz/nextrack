@@ -27,6 +27,7 @@ export default async function LibraryPage() {
     userId: item.userId,
     seriesId: item.seriesId,
     status: item.status,
+    isFavorite: item.isFavorite,
     currentSeason: item.currentSeason ?? undefined,
     currentEpisode: item.currentEpisode ?? undefined,
     currentChapter: item.currentChapter ?? undefined,

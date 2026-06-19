@@ -21,6 +21,12 @@ export const updateLibraryStatusSchema = z.object({
 
 export type UpdateLibraryStatusInput = z.infer<typeof updateLibraryStatusSchema>;
 
+export const updateFavoriteSchema = z.object({
+  isFavorite: z.boolean(),
+});
+
+export type UpdateFavoriteInput = z.infer<typeof updateFavoriteSchema>;
+
 export const updateProgressSchema = z
   .object({
     currentSeason: z.number().int().min(0).optional(),

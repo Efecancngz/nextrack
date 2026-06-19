@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/helpers";
-import { updateLibraryStatusSchema } from "@/lib/validations/library";
+import { updateLibraryStatusSchema, updateFavoriteSchema } from "@/lib/validations/library";
 import { AppError } from "@/lib/utils/app-error";
 import { successResponse, Responses } from "@/lib/utils/api-response";
 import { withErrorHandler, withRateLimit, compose } from "@/lib/utils/middleware";
@@ -24,17 +24,26 @@ async function patchHandler(
   await getOwnedItem(id, user.id);
 
   const body = await req.json().catch(() => null);
-  const parsed = updateLibraryStatusSchema.safeParse(body);
-  if (!parsed.success) {
-    return Responses.validationError(parsed.error.flatten().fieldErrors);
+
+  const statusParsed = updateLibraryStatusSchema.safeParse(body);
+  if (statusParsed.success) {
+    const updated = await prisma.libraryItem.update({
+      where: { id },
+      data: { status: statusParsed.data.status },
+    });
+    return successResponse(updated);
   }
 
-  const updated = await prisma.libraryItem.update({
-    where: { id },
-    data: { status: parsed.data.status },
-  });
+  const favoriteParsed = updateFavoriteSchema.safeParse(body);
+  if (favoriteParsed.success) {
+    const updated = await prisma.libraryItem.update({
+      where: { id },
+      data: { isFavorite: favoriteParsed.data.isFavorite },
+    });
+    return successResponse(updated);
+  }
 
-  return successResponse(updated);
+  return Responses.validationError(statusParsed.error.flatten().fieldErrors);
 }
 
 async function deleteHandler(
