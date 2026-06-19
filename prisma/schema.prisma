@@ -163,6 +163,7 @@ model LibraryItem {
   userId    String
   seriesId  String
   status    LibraryStatus @default(PLAN_TO_WATCH)
+  isFavorite Boolean      @default(false)
 
   // Progress tracking
   currentSeason   Int?   // For TV series

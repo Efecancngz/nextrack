@@ -7,6 +7,7 @@ export interface LibraryEntry {
   userId: string;
   seriesId: string;
   status: LibraryStatus;
+  isFavorite: boolean;
 
   // Progress
   currentSeason?: number;

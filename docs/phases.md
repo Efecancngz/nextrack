@@ -112,7 +112,7 @@ Single developer project — prioritize working features over perfect code.
 - [x] Empty states (empty library)
 - [x] SEO meta tags
 - [x] Favicon and app icons
-- [ ] Final Cloudflare Pages/Workers deployment (Wrangler configured)
+- [x] Final Cloudflare Pages/Workers deployment (Wrangler configured)
 - [x] Test all flows end-to-end (Verified working)
 
 ---
@@ -124,14 +124,14 @@ Single developer project — prioritize working features over perfect code.
 **Prerequisite**: Phase 1 complete and deployed
 
 ### 2.1 Profile & Statistics
-- [ ] User profile page
+- [x] User profile page
 - [ ] Watch/read statistics dashboard
-  - [ ] Total series by type
-  - [ ] Episodes watched / chapters read
-  - [ ] Average rating given
+  - [x] Total series by type
+  - [x] Episodes watched / chapters read
+  - [x] Average rating given
   - [ ] Genre distribution chart
   - [ ] Monthly activity graph
-- [ ] Favorite series showcase
+- [x] Favorite series showcase
 - [ ] Activity history timeline
 
 ### 2.2 Calendar / Schedule
