@@ -5,6 +5,11 @@ import HeroSlider from "@/components/HeroSlider";
 import { getTrendingTvSeries } from "@/lib/api/tmdb";
 import { getTrendingAnime, getTrendingManga, getTrendingManhwa, getTrendingNovel } from "@/lib/api/anilist";
 import type { SearchResult } from "@/types/series";
+import { getCurrentUser } from "@/lib/auth/helpers";
+import { prisma } from "@/lib/db/prisma";
+import { getUpcomingReleases, type CalendarEntry } from "@/lib/calendar";
+import AiringTodaySection from "@/components/AiringTodaySection";
+import type { LibraryEntry } from "@/types/library";
 
 export const dynamic = "force-dynamic";
 
@@ -70,8 +75,53 @@ async function getTrendingData(): Promise<{
   };
 }
 
+async function getMyReleases(): Promise<CalendarEntry[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const items = await prisma.libraryItem.findMany({
+    where: { userId: user.id },
+    include: { series: true },
+  });
+
+  const entries: LibraryEntry[] = items.map((item) => ({
+    id: item.id,
+    userId: item.userId,
+    seriesId: item.seriesId,
+    status: item.status,
+    isFavorite: item.isFavorite,
+    currentSeason: item.currentSeason ?? undefined,
+    currentEpisode: item.currentEpisode ?? undefined,
+    currentChapter: item.currentChapter ?? undefined,
+    currentVolume: item.currentVolume ?? undefined,
+    startedAt: item.startedAt?.toISOString(),
+    completedAt: item.completedAt?.toISOString(),
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    series: {
+      id: item.series.id,
+      externalId: item.series.externalId,
+      source: item.series.source,
+      contentType: item.series.contentType,
+      status: item.series.status,
+      title: item.series.title,
+      titleOriginal: item.series.titleOriginal ?? undefined,
+      coverImage: item.series.coverImage ?? undefined,
+      year: item.series.year ?? undefined,
+      genres: item.series.genres,
+      ratingExternal: item.series.ratingExternal ?? undefined,
+      totalEpisodes: item.series.totalEpisodes ?? undefined,
+      totalChapters: item.series.totalChapters ?? undefined,
+      platforms: [],
+    },
+  }));
+
+  return getUpcomingReleases(entries);
+}
+
 export default async function HomePage() {
   const { tv, anime, manga, manhwa, novel } = await getTrendingData();
+  const myReleases = await getMyReleases();
 
   return (
     <div className="page-enter">
@@ -139,6 +189,8 @@ export default async function HomePage() {
             </React.Fragment>
           ))}
         </section>
+
+        <AiringTodaySection releases={myReleases} />
 
         {/* ── Trending TV Series ── */}
         {tv.length > 0 && (
