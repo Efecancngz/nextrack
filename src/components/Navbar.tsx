@@ -8,6 +8,7 @@ import { useSession, signOut } from "next-auth/react";
 const NAV_LINKS = [
   { href: "/explore", label: "Browse" },
   { href: "/library", label: "My List" },
+  { href: "/calendar", label: "Calendar" },
 ] as const;
 
 export default function Navbar() {

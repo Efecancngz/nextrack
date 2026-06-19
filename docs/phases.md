@@ -135,10 +135,10 @@ Single developer project — prioritize working features over perfect code.
 - [ ] Activity history timeline
 
 ### 2.2 Calendar / Schedule
-- [ ] Weekly release calendar
-- [ ] "Airing today" section on home
-- [ ] Release notifications (in-app)
-- [ ] Calendar view (week/month toggle)
+- [x] Weekly release calendar
+- [x] "Airing today" section on home
+- [ ] Release notifications (in-app) — deferred to 2.3 (Notifications), avoids building the mechanism twice
+- [x] Calendar view (week/month toggle)
 
 ### 2.3 Notifications
 - [ ] In-app notification system
