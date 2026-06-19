@@ -3,6 +3,9 @@ import SeriesCardComponent from "./SeriesCard";
 import type { SeriesCard } from "@/types/series";
 
 interface ProfileFavoritesProps {
+  // SeriesCard (data interface) is a structural superset of SearchResult, the
+  // prop type SeriesCardComponent actually expects — every favorite passed
+  // here satisfies it. Keep that relationship in mind if either type narrows.
   favorites: SeriesCard[];
 }
 
