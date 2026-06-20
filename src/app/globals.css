@@ -1811,6 +1811,23 @@ img, video {
   margin-bottom: var(--space-3);
 }
 
+/* ─── Explore sort ─── */
+.explore-sort-select {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+.explore-sort-select:focus {
+  border-color: var(--color-brand);
+}
+
 /* ─── Series Detail Page ─── */
 .detail-hero {
   position: relative;

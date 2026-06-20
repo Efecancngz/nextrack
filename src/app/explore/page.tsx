@@ -81,6 +81,20 @@ export default function ExplorePage() {
     setYearMin("");
     setYearMax("");
   }
+
+  type SortOption = "relevance" | "rating" | "year" | "popularity";
+  const [sortBy, setSortBy] = useState<SortOption>("relevance");
+
+  const sortedResults = useMemo(() => {
+    if (sortBy === "relevance") return filteredResults;
+    const sorted = [...filteredResults];
+    sorted.sort((a, b) => {
+      if (sortBy === "rating") return (b.ratingExternal ?? -1) - (a.ratingExternal ?? -1);
+      if (sortBy === "year") return (b.year ?? -1) - (a.year ?? -1);
+      return (b.popularity ?? -1) - (a.popularity ?? -1);
+    });
+    return sorted;
+  }, [filteredResults, sortBy]);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window === "undefined") return "grid";
     try {
@@ -309,6 +323,18 @@ export default function ExplorePage() {
           ))}
         </div>
 
+        <select
+          className="explore-sort-select"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          aria-label="Sort results"
+        >
+          <option value="relevance">Relevance</option>
+          <option value="rating">Rating</option>
+          <option value="year">Year (newest)</option>
+          <option value="popularity">Popularity</option>
+        </select>
+
         <div className="explore-view-toggle" role="group" aria-label="View mode">
           <button
             type="button"
@@ -370,18 +396,18 @@ export default function ExplorePage() {
             <>
               {filtersActive && (
                 <p className="explore-filter-summary">
-                  Showing {filteredResults.length} of {results.length} loaded results
+                  Showing {sortedResults.length} of {results.length} loaded results
                 </p>
               )}
               {viewMode === "grid" ? (
                 <div className="series-grid">
-                  {filteredResults.map((item) => (
+                  {sortedResults.map((item) => (
                     <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
                   ))}
                 </div>
               ) : (
                 <div className="series-list">
-                  {filteredResults.map((item) => (
+                  {sortedResults.map((item) => (
                     <SeriesListRow key={`${item.source}-${item.externalId}`} series={item} />
                   ))}
                 </div>
