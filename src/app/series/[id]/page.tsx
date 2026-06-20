@@ -10,6 +10,7 @@ import { parseCompoundId } from "@/lib/db/series-cache";
 import AddToLibraryButton from "@/components/AddToLibraryButton";
 import RatingWidget from "@/components/RatingWidget";
 import LanguageWaitWidget from "@/components/LanguageWaitWidget";
+import SeriesNoteWidget from "@/components/SeriesNoteWidget";
 import type { LibraryStatus } from "@/types/common";
 
 interface PageProps {
@@ -68,6 +69,7 @@ export default async function SeriesDetailPage({ params }: PageProps) {
   const user = await getCurrentUser();
   let existingItem: { id: string; status: LibraryStatus; waitLanguage: string | null } | null = null;
   let existingRating: { score: number; review: string | null } | null = null;
+  let existingNoteContent: string | null = null;
 
   if (user) {
     const { source, externalId } = parseCompoundId(id);
@@ -75,16 +77,20 @@ export default async function SeriesDetailPage({ params }: PageProps) {
       where: { externalId_source: { externalId, source } },
     });
     if (seriesRow) {
-      const [itemRow, ratingRow] = await Promise.all([
+      const [itemRow, ratingRow, noteRow] = await Promise.all([
         prisma.libraryItem.findUnique({
           where: { userId_seriesId: { userId: user.id, seriesId: seriesRow.id } },
         }),
         prisma.userRating.findUnique({
           where: { userId_seriesId: { userId: user.id, seriesId: seriesRow.id } },
         }),
+        prisma.userNote.findUnique({
+          where: { userId_seriesId: { userId: user.id, seriesId: seriesRow.id } },
+        }),
       ]);
       if (itemRow) existingItem = { id: itemRow.id, status: itemRow.status, waitLanguage: itemRow.waitLanguage };
       if (ratingRow) existingRating = { score: ratingRow.score, review: ratingRow.review };
+      if (noteRow) existingNoteContent = noteRow.content;
     }
   }
 
@@ -186,6 +192,13 @@ export default async function SeriesDetailPage({ params }: PageProps) {
               initialRating={existingRating}
               isSignedIn={!!user}
             />
+
+            {user && (
+              <SeriesNoteWidget
+                seriesId={series.id}
+                initialContent={existingNoteContent}
+              />
+            )}
 
             {/* Episode / Chapter counts */}
             <div className="detail-counts">
