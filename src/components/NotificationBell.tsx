@@ -26,6 +26,7 @@ export default function NotificationBell() {
       if (data.success) {
         setNotifications(data.data.notifications);
         setUnreadCount(data.data.unreadCount);
+        setNotificationsEnabled(data.data.notificationsEnabled);
       }
     } catch {
       // silent — a failed fetch just leaves the existing list/badge state as-is
