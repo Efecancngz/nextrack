@@ -9,6 +9,7 @@ Let a logged-in user (1) keep a private free-text note per series, and (2) save 
 - Per-series keyword override — explicitly dropped per user decision; keywords are a single global list shared across all series.
 - Structured/multi-field notes (e.g. separate "spoiler" or "watching on" fields) — free text only.
 - Any server-side redirect route or URL shortening — link construction is pure client-side string building, no backend involvement beyond storing the keyword list and note text.
+- **No scraping, fetching, or pulling of any data from third-party sites (tranimeizle, mangaşehri, or any other saved keyword's site).** The "keyword" is purely a string token appended to a Google search query (`q={title}+{progress}+{keyword}`). The browser opens Google's own search results page in a new tab; the user clicks through manually from there, exactly as if they'd typed the search themselves. Our server never makes a request to, never receives a response from, and never stores any content from these sites — only the keyword string the user typed in to identify them. This keeps the feature inside the project's legal-only/JustWatch-model principle.
 - Public visibility of notes or keywords — both are strictly private to the owning user, never exposed on the public `/profile/[username]` page.
 
 ## Current State (relevant precedent)
