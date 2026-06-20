@@ -63,6 +63,14 @@ interface MangaDexRelationship {
   };
 }
 
+interface MangaDexTag {
+  id: string;
+  attributes: {
+    name: Record<string, string>;
+    group: string;
+  };
+}
+
 interface MangaDexManga {
   id: string;
   type: "manga";
@@ -72,6 +80,7 @@ interface MangaDexManga {
     description: Record<string, string>;
     status: string;
     year?: number;
+    tags: MangaDexTag[];
   };
   relationships: MangaDexRelationship[];
 }
@@ -156,7 +165,10 @@ export async function searchManga(
       titleOriginal,
       coverImage,
       year: item.attributes.year,
-      genres: [], // Mapping tags to genres can be added later if needed
+      genres: item.attributes.tags
+        .filter((tag) => tag.attributes.group === "genre")
+        .map((tag) => tag.attributes.name.en)
+        .filter((name): name is string => Boolean(name)),
       status: mapMangaDexStatus(item.attributes.status),
     };
   });
