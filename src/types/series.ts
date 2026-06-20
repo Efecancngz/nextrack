@@ -19,7 +19,7 @@ export interface ExternalRating {
 
 /** Card view — minimal data for grid/list display */
 export interface SeriesCard {
-  id: string;             // Our internal DB id
+  id: string;             // On SeriesDetail (from /api/series/[id]), this is the compound "{source}-{externalId}" route param, NOT a DB id -- only resolve a real Prisma Series.id via a DB lookup (e.g. prisma.series.findUnique by externalId+source) when one is needed as a foreign key
   externalId: string;
   source: string;
   contentType: ContentType;
