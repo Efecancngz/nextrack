@@ -147,10 +147,10 @@ Single developer project — prioritize working features over perfect code.
 - [x] Notification bell icon with badge count
 
 ### 2.4 Advanced Search
-- [ ] Search suggestions / autocomplete
-- [ ] Advanced filter combinations
-- [ ] Sort by user rating / popularity
-- [ ] "Random" discovery feature
+- [x] Search suggestions / autocomplete
+- [x] Advanced filter combinations — genre, year range, status (status applies to Anime/Manga; TMDB's search response has no per-item status field)
+- [x] Sort by user rating / popularity
+- ~~"Random" discovery feature~~ — dropped during brainstorming, not deferred. Doesn't fit this product's platform-availability-tracker model (not a recommendation engine).
 
 ### 2.5 Language/Translation Tracking
 - [ ] Cron job setup for periodic external API polling (MangaDex, AniList, etc.)

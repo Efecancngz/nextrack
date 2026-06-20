@@ -70,6 +70,7 @@ interface TmdbTvResult {
   poster_path: string | null;
   first_air_date: string;
   genre_ids: number[];
+  popularity: number;
   vote_average: number;
   status?: string;
 }
@@ -116,6 +117,26 @@ interface TmdbProvider {
   logo_path: string;
 }
 
+/** TMDB's official TV genre list — stable, rarely changes, not worth a live API call */
+const TMDB_TV_GENRE_MAP: Record<number, string> = {
+  10759: "Action & Adventure",
+  16: "Animation",
+  35: "Comedy",
+  80: "Crime",
+  99: "Documentary",
+  18: "Drama",
+  10751: "Family",
+  10762: "Kids",
+  9648: "Mystery",
+  10763: "News",
+  10764: "Reality",
+  10765: "Sci-Fi & Fantasy",
+  10766: "Soap",
+  10767: "Talk",
+  10768: "War & Politics",
+  37: "Western",
+};
+
 // ─── Public API Functions ─────────────────────────
 
 /** Search for TV series on TMDB */
@@ -148,9 +169,12 @@ export async function searchTvSeries(
     titleOriginal: item.original_name !== item.name ? item.original_name : undefined,
     coverImage: tmdbImage(item.poster_path),
     year: item.first_air_date ? new Date(item.first_air_date).getFullYear() : undefined,
-    genres: [], // genre_ids need a separate genres list mapping
+    genres: item.genre_ids
+      .map((id) => TMDB_TV_GENRE_MAP[id])
+      .filter((name): name is string => Boolean(name)),
     status: "ONGOING",
     ratingExternal: item.vote_average > 0 ? item.vote_average : undefined,
+    popularity: item.popularity,
   }));
 
   return {

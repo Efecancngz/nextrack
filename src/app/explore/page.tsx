@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import SeriesCard from "@/components/SeriesCard";
 import SeriesListRow from "@/components/SeriesListRow";
+import SearchSuggestions, { type SearchSuggestion } from "@/components/SearchSuggestions";
+import ExploreFilters from "@/components/ExploreFilters";
 import type { SearchResult } from "@/types/series";
+import type { ContentStatus } from "@/types/common";
 
 const CONTENT_TABS = [
   { value: "all",   label: "All" },
@@ -24,6 +28,73 @@ export default function ExplorePage() {
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
+  const router = useRouter();
+  const [suggestions, setSuggestionsState] = useState<SearchSuggestion[]>([]);
+  const suggestionsRef = useRef<SearchSuggestion[]>([]);
+  const setSuggestions = useCallback((next: SearchSuggestion[]) => {
+    suggestionsRef.current = next;
+    setSuggestionsState(next);
+  }, []);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestRequestIdRef = useRef(0);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<ContentStatus[]>([]);
+  const [yearMin, setYearMin] = useState("");
+  const [yearMax, setYearMax] = useState("");
+
+  const availableGenres = useMemo(() => {
+    const set = new Set<string>();
+    results.forEach((r) => r.genres.forEach((g) => set.add(g)));
+    return Array.from(set).sort();
+  }, [results]);
+
+  const filtersActive =
+    selectedGenres.length > 0 || selectedStatuses.length > 0 || yearMin !== "" || yearMax !== "";
+
+  const filteredResults = useMemo(() => {
+    return results.filter((item) => {
+      if (selectedGenres.length > 0 && !selectedGenres.some((g) => item.genres.includes(g))) {
+        return false;
+      }
+      if (selectedStatuses.length > 0 && item.source !== "tmdb" && !selectedStatuses.includes(item.status)) {
+        return false;
+      }
+      if (yearMin && item.year !== undefined && item.year < Number(yearMin)) return false;
+      if (yearMax && item.year !== undefined && item.year > Number(yearMax)) return false;
+      return true;
+    });
+  }, [results, selectedGenres, selectedStatuses, yearMin, yearMax]);
+
+  function toggleGenre(genre: string) {
+    setSelectedGenres((prev) => (prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]));
+  }
+
+  function toggleStatus(status: ContentStatus) {
+    setSelectedStatuses((prev) => (prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]));
+  }
+
+  function clearFilters() {
+    setSelectedGenres([]);
+    setSelectedStatuses([]);
+    setYearMin("");
+    setYearMax("");
+  }
+
+  type SortOption = "relevance" | "rating" | "year" | "popularity";
+  const [sortBy, setSortBy] = useState<SortOption>("relevance");
+
+  const sortedResults = useMemo(() => {
+    if (sortBy === "relevance") return filteredResults;
+    const sorted = [...filteredResults];
+    sorted.sort((a, b) => {
+      if (sortBy === "rating") return (b.ratingExternal ?? -1) - (a.ratingExternal ?? -1);
+      if (sortBy === "year") return (b.year ?? -1) - (a.year ?? -1);
+      return (b.popularity ?? -1) - (a.popularity ?? -1);
+    });
+    return sorted;
+  }, [filteredResults, sortBy]);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window === "undefined") return "grid";
     try {
@@ -82,6 +153,27 @@ export default function ExplorePage() {
     }
   }, []);
 
+  function handleSuggestionSelect(id: string) {
+    setShowSuggestions(false);
+    router.push(`/series/${id}`);
+  }
+
+  function handleSearchInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveSuggestionIndex((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveSuggestionIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+    } else if (e.key === "Enter" && activeSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionSelect(suggestions[activeSuggestionIndex].id);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  }
+
   async function handleLoadMore() {
     if (loadingMore) return;
     const requestId = requestIdRef.current;
@@ -119,6 +211,33 @@ export default function ExplorePage() {
     };
   }, [query, type, search]);
 
+  // Debounced autocomplete suggestions (shorter delay, lighter payload than the main search)
+  useEffect(() => {
+    if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
+
+    if (query.length < 2) {
+      if (suggestionsRef.current.length > 0) setSuggestions([]);
+      return;
+    }
+
+    suggestDebounceRef.current = setTimeout(async () => {
+      const requestId = ++suggestRequestIdRef.current;
+      try {
+        const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(query)}&type=${type}`);
+        const data = await res.json();
+        if (suggestRequestIdRef.current !== requestId) return;
+        setSuggestions(data.success ? data.data.suggestions : []);
+        setActiveSuggestionIndex(-1);
+      } catch {
+        if (suggestRequestIdRef.current === requestId) setSuggestions([]);
+      }
+    }, 200);
+
+    return () => {
+      if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
+    };
+  }, [query, type, setSuggestions]);
+
   // Read initial query from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -151,6 +270,9 @@ export default function ExplorePage() {
           placeholder="Search for a series, anime, manga..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => setShowSuggestions(false)}
+          onKeyDown={handleSearchInputKeyDown}
           autoFocus
         />
         {query && (
@@ -158,12 +280,15 @@ export default function ExplorePage() {
             className="explore-search-clear"
             onClick={() => {
               requestIdRef.current++;
+              suggestRequestIdRef.current++;
               setQuery("");
               setResults([]);
               setSearched(false);
               setPage(1);
               setTotal(0);
               setLoadMoreError(null);
+              setSuggestions([]);
+              setShowSuggestions(false);
             }}
             aria-label="Clear search"
           >
@@ -171,6 +296,14 @@ export default function ExplorePage() {
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
           </button>
+        )}
+        {showSuggestions && (
+          <SearchSuggestions
+            suggestions={suggestions}
+            activeIndex={activeSuggestionIndex}
+            onSelect={handleSuggestionSelect}
+            onHover={setActiveSuggestionIndex}
+          />
         )}
       </div>
 
@@ -189,6 +322,18 @@ export default function ExplorePage() {
             </button>
           ))}
         </div>
+
+        <select
+          className="explore-sort-select"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          aria-label="Sort results"
+        >
+          <option value="relevance">Relevance</option>
+          <option value="rating">Rating</option>
+          <option value="year">Year (newest)</option>
+          <option value="popularity">Popularity</option>
+        </select>
 
         <div className="explore-view-toggle" role="group" aria-label="View mode">
           <button
@@ -221,6 +366,23 @@ export default function ExplorePage() {
         </div>
       </div>
 
+      {/* Filters */}
+      {results.length > 0 && (
+        <ExploreFilters
+          availableGenres={availableGenres}
+          selectedGenres={selectedGenres}
+          onToggleGenre={toggleGenre}
+          selectedStatuses={selectedStatuses}
+          onToggleStatus={toggleStatus}
+          yearMin={yearMin}
+          yearMax={yearMax}
+          onYearMinChange={setYearMin}
+          onYearMaxChange={setYearMax}
+          active={filtersActive}
+          onClear={clearFilters}
+        />
+      )}
+
       {/* Results */}
       <div className="explore-results">
         {loading ? (
@@ -230,37 +392,53 @@ export default function ExplorePage() {
             ))}
           </div>
         ) : results.length > 0 ? (
-          <>
-            {viewMode === "grid" ? (
-              <div className="series-grid">
-                {results.map((item) => (
-                  <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
-                ))}
-              </div>
-            ) : (
-              <div className="series-list">
-                {results.map((item) => (
-                  <SeriesListRow key={`${item.source}-${item.externalId}`} series={item} />
-                ))}
-              </div>
-            )}
+          filteredResults.length > 0 ? (
+            <>
+              {filtersActive && (
+                <p className="explore-filter-summary">
+                  Showing {sortedResults.length} of {results.length} loaded results
+                </p>
+              )}
+              {viewMode === "grid" ? (
+                <div className="series-grid">
+                  {sortedResults.map((item) => (
+                    <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
+                  ))}
+                </div>
+              ) : (
+                <div className="series-list">
+                  {sortedResults.map((item) => (
+                    <SeriesListRow key={`${item.source}-${item.externalId}`} series={item} />
+                  ))}
+                </div>
+              )}
 
-            {results.length < total && (
-              <div className="explore-load-more">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? "Loading..." : "Load More"}
-                </button>
-                {loadMoreError && (
-                  <p className="explore-load-more-error">{loadMoreError}</p>
-                )}
-              </div>
-            )}
-          </>
+              {results.length < total && (
+                <div className="explore-load-more">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? "Loading..." : "Load More"}
+                  </button>
+                  {loadMoreError && (
+                    <p className="explore-load-more-error">{loadMoreError}</p>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="explore-empty">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.3">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+              <p>No results match your filters</p>
+              <span>Try removing a filter or widening the year range</span>
+            </div>
+          )
         ) : searched ? (
           <div className="explore-empty">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.3">

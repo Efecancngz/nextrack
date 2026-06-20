@@ -61,4 +61,5 @@ export interface SearchResult {
   genres: string[];
   status: ContentStatus;
   ratingExternal?: number;
+  popularity?: number;
 }

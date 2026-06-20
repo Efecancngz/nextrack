@@ -80,6 +80,7 @@ const SEARCH_QUERY = `
         startDate { year }
         genres
         averageScore
+        popularity
         episodes
         chapters
         countryOfOrigin
@@ -119,6 +120,7 @@ interface AniListMedia {
   startDate: { year?: number };
   genres: string[];
   averageScore?: number;
+  popularity?: number;
   episodes?: number;
   chapters?: number;
   countryOfOrigin?: string;
@@ -157,6 +159,7 @@ export async function searchAniList(
     genres: item.genres,
     status: mapStatus(item.status),
     ratingExternal: item.averageScore ? item.averageScore / 10 : undefined,
+    popularity: item.popularity,
   }));
 
   return {
