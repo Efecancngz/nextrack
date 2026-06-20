@@ -20,11 +20,15 @@ export default function NotificationBell() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   async function fetchNotifications() {
-    const res = await fetch("/api/notifications");
-    const data = await res.json();
-    if (data.success) {
-      setNotifications(data.data.notifications);
-      setUnreadCount(data.data.unreadCount);
+    try {
+      const res = await fetch("/api/notifications");
+      const data = await res.json();
+      if (data.success) {
+        setNotifications(data.data.notifications);
+        setUnreadCount(data.data.unreadCount);
+      }
+    } catch {
+      // silent — a failed fetch just leaves the existing list/badge state as-is
     }
   }
 
@@ -39,19 +43,27 @@ export default function NotificationBell() {
     const next = !open;
     setOpen(next);
     if (next && unreadCount > 0) {
-      await fetch("/api/notifications/mark-read", { method: "PATCH" });
-      await fetchNotifications();
+      try {
+        await fetch("/api/notifications/mark-read", { method: "PATCH" });
+        await fetchNotifications();
+      } catch {
+        // silent — dropdown still opens with the last-known list; badge just won't clear this time
+      }
     }
   }
 
   async function handleToggleEnabled() {
     const next = !notificationsEnabled;
     setNotificationsEnabled(next);
-    await fetch("/api/notifications/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notificationsEnabled: next }),
-    });
+    try {
+      await fetch("/api/notifications/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationsEnabled: next }),
+      });
+    } catch {
+      setNotificationsEnabled(!next); // roll back the optimistic toggle on failure
+    }
   }
 
   if (!session?.user) return null;
