@@ -25,10 +25,14 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  notificationsEnabled    Boolean   @default(true)
+  lastNotificationCheckAt DateTime?
+
   accounts      Account[]
   sessions      Session[]
   libraryItems  LibraryItem[]
   userRatings   UserRating[]
+  notifications Notification[]
 
   @@index([email])
 }
@@ -139,6 +143,7 @@ model Series {
 
   libraryItems    LibraryItem[]
   userRatings     UserRating[]
+  notifications   Notification[]
 
   @@unique([externalId, source])
   @@index([contentType])
@@ -203,4 +208,24 @@ model UserRating {
   @@unique([userId, seriesId])
   @@index([userId])
   @@index([seriesId])
+}
+
+// ─────────────────────────────────────────────────
+// Notifications (new episode/chapter alerts)
+// ─────────────────────────────────────────────────
+
+model Notification {
+  id            String   @id @default(cuid())
+  userId        String
+  seriesId      String
+  libraryItemId String?
+  message       String
+  isRead        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
