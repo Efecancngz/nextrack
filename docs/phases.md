@@ -137,14 +137,14 @@ Single developer project — prioritize working features over perfect code.
 ### 2.2 Calendar / Schedule
 - [x] Weekly release calendar
 - [x] "Airing today" section on home
-- [ ] Release notifications (in-app) — deferred to 2.3 (Notifications), avoids building the mechanism twice
+- [x] Release notifications (in-app) — shipped as part of Phase 2.3
 - [x] Calendar view (week/month toggle)
 
 ### 2.3 Notifications
-- [ ] In-app notification system
-- [ ] New episode/chapter alerts for tracked series
-- [ ] Notification preferences (which types to notify)
-- [ ] Notification bell icon with badge count
+- [x] In-app notification system
+- [x] New episode/chapter alerts for tracked series
+- [x] Notification preferences (which types to notify) — single on/off toggle this round; per-type granularity deferred until a second notification type exists
+- [x] Notification bell icon with badge count
 
 ### 2.4 Advanced Search
 - [ ] Search suggestions / autocomplete
