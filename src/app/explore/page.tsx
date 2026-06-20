@@ -27,7 +27,12 @@ export default function ExplorePage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
   const router = useRouter();
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [suggestions, setSuggestionsState] = useState<SearchSuggestion[]>([]);
+  const suggestionsRef = useRef<SearchSuggestion[]>([]);
+  const setSuggestions = useCallback((next: SearchSuggestion[]) => {
+    suggestionsRef.current = next;
+    setSuggestionsState(next);
+  }, []);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -153,10 +158,8 @@ export default function ExplorePage() {
     if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
 
     if (query.length < 2) {
-      suggestDebounceRef.current = setTimeout(() => setSuggestions([]), 0);
-      return () => {
-        if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
-      };
+      if (suggestionsRef.current.length > 0) setSuggestions([]);
+      return;
     }
 
     suggestDebounceRef.current = setTimeout(async () => {
@@ -175,7 +178,7 @@ export default function ExplorePage() {
     return () => {
       if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
     };
-  }, [query, type]);
+  }, [query, type, setSuggestions]);
 
   // Read initial query from URL
   useEffect(() => {
