@@ -20,6 +20,10 @@ export default {
   },
 
   async scheduled(_event: MinimalScheduledEvent, env: CloudflareEnv, ctx: MinimalExecutionContext) {
+    if (!env.DATABASE_URL) {
+      console.error("[cron] DATABASE_URL is not set — skipping language availability check");
+      return;
+    }
     // Must happen before the dynamic import below — process.env is otherwise
     // never populated outside the generated fetch handler's request path,
     // and prisma.ts reads process.env.DATABASE_URL at module top-level.
