@@ -144,6 +144,7 @@ model Series {
   libraryItems    LibraryItem[]
   userRatings     UserRating[]
   notifications   Notification[]
+  episodeLanguages EpisodeLanguage[]
 
   @@unique([externalId, source])
   @@index([contentType])
@@ -169,6 +170,7 @@ model LibraryItem {
   seriesId  String
   status    LibraryStatus @default(PLAN_TO_WATCH)
   isFavorite Boolean      @default(false)
+  waitLanguage String?    // "EN" | "TR" | null — only meaningful for MangaDex-sourced items
 
   // Progress tracking
   currentSeason   Int?   // For TV series
@@ -228,4 +230,20 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([userId, createdAt])
+}
+
+// ─────────────────────────────────────────────────
+// Language/translation availability tracking
+// ─────────────────────────────────────────────────
+
+model EpisodeLanguage {
+  id            String   @id @default(cuid())
+  seriesId      String
+  language      String   // "EN" | "TR"
+  latestChapter Int
+  updatedAt     DateTime @updatedAt
+
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([seriesId, language])
 }

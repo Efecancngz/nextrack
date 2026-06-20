@@ -153,10 +153,10 @@ Single developer project — prioritize working features over perfect code.
 - ~~"Random" discovery feature~~ — dropped during brainstorming, not deferred. Doesn't fit this product's platform-availability-tracker model (not a recommendation engine).
 
 ### 2.5 Language/Translation Tracking
-- [ ] Cron job setup for periodic external API polling (MangaDex, AniList, etc.)
-- [ ] `EpisodeLanguage` database model to store language availability timestamps
-- [ ] "Wait for [Language]" toggle on user library
-- [ ] Automated notifications when requested language (e.g., Turkish) becomes available
+- [x] Cron job setup for periodic external API polling — Cloudflare Cron Trigger via a custom Worker wrapper, MangaDex only (AniList has no language-availability data; Anime/TV tracking dropped from scope — see design spec)
+- [x] `EpisodeLanguage` database model to store language availability — stores latest known chapter count per (series, language), not full per-chapter history
+- [x] "Wait for [Language]" toggle on user library — English/Turkish only, library card + series detail page
+- [x] Automated notifications when requested language becomes available — reuses the existing Notification system from Phase 2.3
 
 ### 2.6 Personal Private Notes & Custom Links (Google Redirector)
 - [ ] `UserNote` database model (userId, seriesId, text content)
