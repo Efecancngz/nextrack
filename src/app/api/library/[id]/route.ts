@@ -1,7 +1,7 @@
 import { type NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/helpers";
-import { updateLibraryStatusSchema, updateFavoriteSchema } from "@/lib/validations/library";
+import { updateLibraryStatusSchema, updateFavoriteSchema, updateWaitLanguageSchema } from "@/lib/validations/library";
 import { AppError } from "@/lib/utils/app-error";
 import { successResponse, Responses } from "@/lib/utils/api-response";
 import { withErrorHandler, withRateLimit, compose } from "@/lib/utils/middleware";
@@ -39,6 +39,15 @@ async function patchHandler(
     const updated = await prisma.libraryItem.update({
       where: { id },
       data: { isFavorite: favoriteParsed.data.isFavorite },
+    });
+    return successResponse(updated);
+  }
+
+  const waitLanguageParsed = updateWaitLanguageSchema.safeParse(body);
+  if (waitLanguageParsed.success) {
+    const updated = await prisma.libraryItem.update({
+      where: { id },
+      data: { waitLanguage: waitLanguageParsed.data.waitLanguage },
     });
     return successResponse(updated);
   }

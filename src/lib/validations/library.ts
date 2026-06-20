@@ -51,3 +51,9 @@ export const rateSeriesSchema = z.object({
 });
 
 export type RateSeriesInput = z.infer<typeof rateSeriesSchema>;
+
+export const updateWaitLanguageSchema = z.object({
+  waitLanguage: z.enum(["EN", "TR"]).nullable(),
+});
+
+export type UpdateWaitLanguageInput = z.infer<typeof updateWaitLanguageSchema>;
