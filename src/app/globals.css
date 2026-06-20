@@ -1664,6 +1664,56 @@ img, video {
   font-size: 0.8125rem;
 }
 
+/* ─── Explore autocomplete suggestions ─── */
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2);
+}
+
+.search-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.search-suggestion-item:hover,
+.search-suggestion-item-active {
+  background: var(--color-bg-elevated);
+}
+
+.search-suggestion-title {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-suggestion-year {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
 /* ─── Series Detail Page ─── */
 .detail-hero {
   position: relative;

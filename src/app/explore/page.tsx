@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import SeriesCard from "@/components/SeriesCard";
 import SeriesListRow from "@/components/SeriesListRow";
+import SearchSuggestions, { type SearchSuggestion } from "@/components/SearchSuggestions";
 import type { SearchResult } from "@/types/series";
 
 const CONTENT_TABS = [
@@ -24,6 +26,12 @@ export default function ExplorePage() {
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
+  const router = useRouter();
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestRequestIdRef = useRef(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window === "undefined") return "grid";
     try {
@@ -82,6 +90,27 @@ export default function ExplorePage() {
     }
   }, []);
 
+  function handleSuggestionSelect(id: string) {
+    setShowSuggestions(false);
+    router.push(`/series/${id}`);
+  }
+
+  function handleSearchInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveSuggestionIndex((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveSuggestionIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+    } else if (e.key === "Enter" && activeSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSuggestionSelect(suggestions[activeSuggestionIndex].id);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  }
+
   async function handleLoadMore() {
     if (loadingMore) return;
     const requestId = requestIdRef.current;
@@ -119,6 +148,35 @@ export default function ExplorePage() {
     };
   }, [query, type, search]);
 
+  // Debounced autocomplete suggestions (shorter delay, lighter payload than the main search)
+  useEffect(() => {
+    if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
+
+    if (query.length < 2) {
+      suggestDebounceRef.current = setTimeout(() => setSuggestions([]), 0);
+      return () => {
+        if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
+      };
+    }
+
+    suggestDebounceRef.current = setTimeout(async () => {
+      const requestId = ++suggestRequestIdRef.current;
+      try {
+        const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(query)}&type=${type}`);
+        const data = await res.json();
+        if (suggestRequestIdRef.current !== requestId) return;
+        setSuggestions(data.success ? data.data.suggestions : []);
+        setActiveSuggestionIndex(-1);
+      } catch {
+        if (suggestRequestIdRef.current === requestId) setSuggestions([]);
+      }
+    }, 200);
+
+    return () => {
+      if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
+    };
+  }, [query, type]);
+
   // Read initial query from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -151,6 +209,9 @@ export default function ExplorePage() {
           placeholder="Search for a series, anime, manga..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => setShowSuggestions(false)}
+          onKeyDown={handleSearchInputKeyDown}
           autoFocus
         />
         {query && (
@@ -158,12 +219,15 @@ export default function ExplorePage() {
             className="explore-search-clear"
             onClick={() => {
               requestIdRef.current++;
+              suggestRequestIdRef.current++;
               setQuery("");
               setResults([]);
               setSearched(false);
               setPage(1);
               setTotal(0);
               setLoadMoreError(null);
+              setSuggestions([]);
+              setShowSuggestions(false);
             }}
             aria-label="Clear search"
           >
@@ -171,6 +235,14 @@ export default function ExplorePage() {
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
           </button>
+        )}
+        {showSuggestions && (
+          <SearchSuggestions
+            suggestions={suggestions}
+            activeIndex={activeSuggestionIndex}
+            onSelect={handleSuggestionSelect}
+            onHover={setActiveSuggestionIndex}
+          />
         )}
       </div>
 
