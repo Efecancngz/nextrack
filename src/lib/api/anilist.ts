@@ -246,17 +246,31 @@ const EPISODE_COUNT_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
       episodes
+      nextAiringEpisode { episode }
     }
   }
 `;
 
-/** Get the current total episode count for an anime, or null if unavailable */
+/**
+ * Get the current episode count for an anime, or null if unavailable.
+ *
+ * AniList's `episodes` field is the *final/total* episode count, which is
+ * null for any anime that hasn't finished airing yet — i.e. null for the
+ * majority of actively-tracked, ongoing anime. When that happens, fall back
+ * to `nextAiringEpisode.episode - 1`: the upcoming episode's number minus
+ * one is exactly how many episodes have aired so far, which is the correct
+ * baseline for detecting "a new episode just aired" on an ongoing series.
+ */
 export async function getAnimeEpisodeCount(anilistId: string): Promise<number | null> {
   try {
-    const data = await anilistFetch<{ Media: { episodes: number | null } }>(EPISODE_COUNT_QUERY, {
-      id: Number(anilistId),
-    });
-    return data.Media?.episodes ?? null;
+    const data = await anilistFetch<{
+      Media: { episodes: number | null; nextAiringEpisode: { episode: number } | null };
+    }>(EPISODE_COUNT_QUERY, { id: Number(anilistId) });
+
+    if (data.Media?.episodes != null) return data.Media.episodes;
+
+    const nextEpisode = data.Media?.nextAiringEpisode?.episode;
+    return nextEpisode != null ? nextEpisode - 1 : null;
   } catch (err) {
     console.error(`[AniList] Failed to fetch episode count for media ${anilistId}:`, err);
     return null;
