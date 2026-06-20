@@ -132,51 +132,54 @@ export async function checkForNewEpisodes(userId: string): Promise<{ created: nu
     include: { series: true },
   });
 
-  let created = 0;
+  const results = await Promise.all(
+    items.map(async (item): Promise<number> => {
+      const { series } = item;
+      try {
+        let newCount: number | null = null;
+        let field: "totalEpisodes" | "totalChapters" = "totalEpisodes";
 
-  for (const item of items) {
-    const { series } = item;
-    try {
-      let newCount: number | null = null;
-      let field: "totalEpisodes" | "totalChapters" = "totalEpisodes";
+        if (series.source === "tmdb") {
+          newCount = await getTvEpisodeCount(series.externalId);
+          field = "totalEpisodes";
+        } else if (series.source === "anilist" && series.contentType === "ANIME") {
+          newCount = await getAnimeEpisodeCount(series.externalId);
+          field = "totalEpisodes";
+        } else if (series.source === "mangadex") {
+          const { total } = await getMangaChapters(series.externalId, 1, 1);
+          newCount = total;
+          field = "totalChapters";
+        } else {
+          return 0;
+        }
 
-      if (series.source === "tmdb") {
-        newCount = await getTvEpisodeCount(series.externalId);
-        field = "totalEpisodes";
-      } else if (series.source === "anilist" && series.contentType === "ANIME") {
-        newCount = await getAnimeEpisodeCount(series.externalId);
-        field = "totalEpisodes";
-      } else if (series.source === "mangadex") {
-        const { total } = await getMangaChapters(series.externalId, 1, 1);
-        newCount = total;
-        field = "totalChapters";
-      } else {
-        continue;
+        const oldCount = field === "totalEpisodes" ? series.totalEpisodes : series.totalChapters;
+        if (newCount !== null && oldCount !== null && newCount > oldCount) {
+          const unit = field === "totalEpisodes" ? "episode" : "chapter";
+          await prisma.$transaction([
+            prisma.notification.create({
+              data: {
+                userId,
+                seriesId: series.id,
+                libraryItemId: item.id,
+                message: `${series.title} just reached ${unit} ${newCount}`,
+              },
+            }),
+            prisma.series.update({
+              where: { id: series.id },
+              data: { [field]: newCount },
+            }),
+          ]);
+          return 1;
+        }
+      } catch (err) {
+        console.error(`[Notifications] Failed to check ${series.source}-${series.externalId}:`, err);
       }
+      return 0;
+    })
+  );
 
-      const oldCount = field === "totalEpisodes" ? series.totalEpisodes : series.totalChapters;
-      if (newCount !== null && oldCount !== null && newCount > oldCount) {
-        const unit = field === "totalEpisodes" ? "episode" : "chapter";
-        await prisma.$transaction([
-          prisma.notification.create({
-            data: {
-              userId,
-              seriesId: series.id,
-              libraryItemId: item.id,
-              message: `${series.title} just reached ${unit} ${newCount}`,
-            },
-          }),
-          prisma.series.update({
-            where: { id: series.id },
-            data: { [field]: newCount },
-          }),
-        ]);
-        created++;
-      }
-    } catch (err) {
-      console.error(`[Notifications] Failed to check ${series.source}-${series.externalId}:`, err);
-    }
-  }
+  const created = results.reduce((acc, val) => acc + val, 0);
 
   await prisma.user.update({
     where: { id: userId },
@@ -187,7 +190,9 @@ export async function checkForNewEpisodes(userId: string): Promise<{ created: nu
 }
 ```
 
-The `Notification` create and `Series` count update happen in one `$transaction` so they can never drift apart (a crash between the two would otherwise either duplicate-notify on the next check or silently lose the count update).
+All library items are checked in parallel via `Promise.all` — matching `getUpcomingReleases`'s existing pattern from the Calendar feature (2.2) exactly, rather than a sequential `for...of` that would make the route's latency scale linearly with library size (and risk a slow/timed-out individual call delaying every other item behind it). Each item's `try/catch` is independent, so one failure never blocks or fails the others, same resilience guarantee as before. No write-conflict risk between parallel branches: each item updates a *different* `Series` row (a user has at most one `LibraryItem` per series, enforced by the existing `@@unique([userId, seriesId])` constraint), and the `Notification` create + `Series` count update for a given item still happen in one `$transaction` so they can never drift apart for that item.
+
+*(This loop-parallelization fix was caught by a second external architecture review, written to `notifications_loop_optimization.md` at the repo root, before any code was written — same review process the trigger-mechanism fix above went through.)*
 
 ### 4. API routes
 
