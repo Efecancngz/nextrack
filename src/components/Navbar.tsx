@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import NotificationBell from "./NotificationBell";
 
 const NAV_LINKS = [
   { href: "/explore", label: "Browse" },
@@ -45,6 +46,7 @@ export default function Navbar() {
 
         {/* Auth buttons */}
         <div className="navbar-auth">
+          <NotificationBell />
           {session?.user ? (
             <>
               {session.user.username ? (

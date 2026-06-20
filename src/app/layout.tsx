@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { SessionProvider } from "@/components/providers/session-provider";
+import NotificationTrigger from "@/components/NotificationTrigger";
 
 /* Geist — body text (--font-sans) */
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -88,6 +89,7 @@ export default function RootLayout({
       <body className="min-h-dvh flex flex-col antialiased">
         <SessionProvider>
           <Navbar />
+          <NotificationTrigger />
 
           <main className="flex-1">
             {children}
