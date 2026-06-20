@@ -106,6 +106,23 @@ export default function LibraryItemCard({ entry, onRemoved, onUpdated }: Library
     }
   }
 
+  async function handleSetWaitLanguage(next: string | null) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/library/${entry.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ waitLanguage: next }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onUpdated({ ...entry, waitLanguage: next });
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <article className="poster-card library-card">
       <div className="library-status-wrapper">
@@ -175,6 +192,19 @@ export default function LibraryItemCard({ entry, onRemoved, onUpdated }: Library
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
         </button>
+        {entry.series.source === "mangadex" && (
+          <select
+            className="library-card-language-select"
+            value={entry.waitLanguage ?? ""}
+            onChange={(e) => handleSetWaitLanguage(e.target.value || null)}
+            disabled={busy}
+            aria-label="Wait for language"
+          >
+            <option value="">No language wait</option>
+            <option value="EN">Wait: English</option>
+            <option value="TR">Wait: Turkish</option>
+          </select>
+        )}
         {confirmingRemove ? (
           <div className="library-card-confirm">
             <span>Remove?</span>

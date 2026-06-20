@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db/prisma";
 import { parseCompoundId } from "@/lib/db/series-cache";
 import AddToLibraryButton from "@/components/AddToLibraryButton";
 import RatingWidget from "@/components/RatingWidget";
+import LanguageWaitWidget from "@/components/LanguageWaitWidget";
 import type { LibraryStatus } from "@/types/common";
 
 interface PageProps {
@@ -65,7 +66,7 @@ export default async function SeriesDetailPage({ params }: PageProps) {
   }
 
   const user = await getCurrentUser();
-  let existingItem: { id: string; status: LibraryStatus } | null = null;
+  let existingItem: { id: string; status: LibraryStatus; waitLanguage: string | null } | null = null;
   let existingRating: { score: number; review: string | null } | null = null;
 
   if (user) {
@@ -82,7 +83,7 @@ export default async function SeriesDetailPage({ params }: PageProps) {
           where: { userId_seriesId: { userId: user.id, seriesId: seriesRow.id } },
         }),
       ]);
-      if (itemRow) existingItem = { id: itemRow.id, status: itemRow.status };
+      if (itemRow) existingItem = { id: itemRow.id, status: itemRow.status, waitLanguage: itemRow.waitLanguage };
       if (ratingRow) existingRating = { score: ratingRow.score, review: ratingRow.review };
     }
   }
@@ -142,6 +143,12 @@ export default async function SeriesDetailPage({ params }: PageProps) {
               initialItem={existingItem}
               isSignedIn={!!user}
             />
+            {existingItem && series.source === "mangadex" && (
+              <LanguageWaitWidget
+                libraryItemId={existingItem.id}
+                initialValue={existingItem.waitLanguage}
+              />
+            )}
           </aside>
 
           {/* Info */}
