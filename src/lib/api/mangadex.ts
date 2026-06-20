@@ -184,14 +184,15 @@ export async function searchManga(
 export async function getMangaChapters(
   mangaId: string,
   page = 1,
-  limit = 100
+  limit = 100,
+  language = "en"
 ): Promise<{ chapters: MangaDexChapter[]; total: number }> {
   const offset = (page - 1) * limit;
 
   const data = await mangadexFetch<MangaDexFeedResponse>(`/manga/${mangaId}/feed`, {
     limit: String(limit),
     offset: String(offset),
-    "translatedLanguage[]": ["en"],
+    "translatedLanguage[]": [language],
     "order[chapter]": "asc",
   });
 
