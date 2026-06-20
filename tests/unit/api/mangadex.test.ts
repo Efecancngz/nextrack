@@ -21,6 +21,16 @@ describe("mangadex client", () => {
               description: { en: "A nice test manga" },
               status: "ongoing",
               year: 2026,
+              tags: [
+                {
+                  id: "tag-1",
+                  attributes: { group: "genre", name: { en: "Action" } },
+                },
+                {
+                  id: "tag-2",
+                  attributes: { group: "theme", name: { en: "School Life" } },
+                },
+              ],
             },
             relationships: [
               {
@@ -53,6 +63,7 @@ describe("mangadex client", () => {
       expect(res.results[0].coverImage).toBe("https://uploads.mangadex.org/covers/manga-123/cover_file.png.256.jpg");
       expect(res.results[0].status).toBe("ONGOING");
       expect(res.results[0].year).toBe(2026);
+      expect(res.results[0].genres).toEqual(["Action"]);
       expect(res.total).toBe(1);
       expect(res.totalPages).toBe(1);
     });
@@ -71,6 +82,7 @@ describe("mangadex client", () => {
               description: {},
               status: "completed",
               year: 2020,
+              tags: [],
             },
             relationships: [],
           },
