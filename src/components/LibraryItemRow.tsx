@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { LIBRARY_STATUS_BADGE_CLASS, LIBRARY_STATUS_LABELS, type LibraryStatus } from "@/types/common";
 import type { LibraryEntry } from "@/types/library";
+import RedirectButton from "@/components/RedirectButton";
 
 const STATUS_OPTIONS: LibraryStatus[] = [
   "WATCHING",
@@ -199,6 +200,11 @@ export default function LibraryItemRow({ entry, onRemoved, onUpdated }: LibraryI
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
         </button>
+        <RedirectButton
+          title={entry.series.title}
+          progress={progress ? { label: progress.label as "episode" | "chapter", value: progress.value } : null}
+          variant="compact"
+        />
         {entry.series.source === "mangadex" && (
           <select
             className="library-card-language-select"

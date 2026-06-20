@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/explore", label: "Browse" },
   { href: "/library", label: "My List" },
   { href: "/calendar", label: "Calendar" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 export default function Navbar() {

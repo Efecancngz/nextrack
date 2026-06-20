@@ -33,6 +33,8 @@ model User {
   libraryItems  LibraryItem[]
   userRatings   UserRating[]
   notifications Notification[]
+  userNotes      UserNote[]
+  searchKeywords SearchKeyword[]
 
   @@index([email])
 }
@@ -145,6 +147,7 @@ model Series {
   userRatings     UserRating[]
   notifications   Notification[]
   episodeLanguages EpisodeLanguage[]
+  userNotes       UserNote[]
 
   @@unique([externalId, source])
   @@index([contentType])
@@ -246,4 +249,35 @@ model EpisodeLanguage {
   series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@unique([seriesId, language])
+}
+
+// ─────────────────────────────────────────────────
+// Private notes & custom search keywords
+// ─────────────────────────────────────────────────
+
+model UserNote {
+  id        String   @id @default(cuid())
+  userId    String
+  seriesId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seriesId])
+  @@index([userId])
+}
+
+model SearchKeyword {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
