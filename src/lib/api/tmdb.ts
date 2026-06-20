@@ -253,6 +253,20 @@ export async function getTvNextAirDate(tmdbId: string): Promise<string | null> {
   }
 }
 
+/** Get the current total episode count for a TV series, or null if unavailable / API key unset */
+export async function getTvEpisodeCount(tmdbId: string): Promise<number | null> {
+  if (!API_KEY) return null;
+  try {
+    const detail = await tmdbFetch<{ number_of_episodes: number | null }>(`/tv/${tmdbId}`, {
+      language: "en-US",
+    });
+    return detail.number_of_episodes ?? null;
+  } catch (err) {
+    console.error(`[TMDB] Failed to fetch episode count for series ${tmdbId}:`, err);
+    return null;
+  }
+}
+
 /** Get trending TV series (week) */
 export async function getTrendingTvSeries(): Promise<SearchResult[]> {
   if (!API_KEY) {

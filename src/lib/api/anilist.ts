@@ -241,3 +241,24 @@ export async function getAnimeNextAiringEpisode(anilistId: string): Promise<stri
     return null;
   }
 }
+
+const EPISODE_COUNT_QUERY = `
+  query ($id: Int) {
+    Media(id: $id, type: ANIME) {
+      episodes
+    }
+  }
+`;
+
+/** Get the current total episode count for an anime, or null if unavailable */
+export async function getAnimeEpisodeCount(anilistId: string): Promise<number | null> {
+  try {
+    const data = await anilistFetch<{ Media: { episodes: number | null } }>(EPISODE_COUNT_QUERY, {
+      id: Number(anilistId),
+    });
+    return data.Media?.episodes ?? null;
+  } catch (err) {
+    console.error(`[AniList] Failed to fetch episode count for media ${anilistId}:`, err);
+    return null;
+  }
+}
