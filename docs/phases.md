@@ -159,12 +159,12 @@ Single developer project — prioritize working features over perfect code.
 - [x] Automated notifications when requested language becomes available — reuses the existing Notification system from Phase 2.3
 
 ### 2.6 Personal Private Notes & Custom Links (Google Redirector)
-- [ ] `UserNote` database model (userId, seriesId, text content)
-- [ ] Save user-preferred site search keywords (e.g. `tranimeizle`, `mangaşehri`) globally and per-series
-- [ ] Implement Google Search Redirector: Watch/Read buttons dynamically link to Google search `https://www.google.com/search?q={title}+{episode}+{keyword}`
-- [ ] UI for managing private notes and search keywords on the series details page
-- [ ] Quick access to custom Google redirect search links from library dashboard
-- [ ] Strict backend authorization (users can only view/edit their own notes/keywords)
+- [x] `UserNote` database model (userId, seriesId, text content) — one free-text note per (user, series), empty content deletes the row
+- [x] Save user-preferred site search keywords globally — single global list per user (not per-series, by explicit decision), `SearchKeyword` model with one `isDefault` flag, atomic switching via `prisma.$transaction`
+- [x] Implement Google Search Redirector: Watch/Read buttons dynamically link to Google search `https://www.google.com/search?q={title}+{Episode|Chapter} {N}+{keyword}` — pure client-side URL construction (`buildRedirectUrl`), no server-side redirect route, no data ever fetched/scraped from third-party sites
+- [x] UI for managing private notes and search keywords on the series details page — `SeriesNoteWidget` (notes, auto-save) and `RedirectButton` (full variant with keyword dropdown)
+- [x] Quick access to custom Google redirect search links from library dashboard — `RedirectButton` compact variant (single icon button, default keyword) on both `LibraryItemCard` and `LibraryItemRow`
+- [x] Strict backend authorization (users can only view/edit their own notes/keywords) — every route `requireAuth()`-gated and scoped by `userId`, same `getOwnedItem`-style ownership check pattern as Library
 
 ### 2.7 AI-Powered Recommendations & Semantic Search
 - [ ] Enable `pgvector` database extension on Neon PostgreSQL
