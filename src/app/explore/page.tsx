@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import SeriesCard from "@/components/SeriesCard";
 import SeriesListRow from "@/components/SeriesListRow";
 import SearchSuggestions, { type SearchSuggestion } from "@/components/SearchSuggestions";
+import ExploreFilters from "@/components/ExploreFilters";
 import type { SearchResult } from "@/types/series";
+import type { ContentStatus } from "@/types/common";
 
 const CONTENT_TABS = [
   { value: "all",   label: "All" },
@@ -37,6 +39,48 @@ export default function ExplorePage() {
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestRequestIdRef = useRef(0);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<ContentStatus[]>([]);
+  const [yearMin, setYearMin] = useState("");
+  const [yearMax, setYearMax] = useState("");
+
+  const availableGenres = useMemo(() => {
+    const set = new Set<string>();
+    results.forEach((r) => r.genres.forEach((g) => set.add(g)));
+    return Array.from(set).sort();
+  }, [results]);
+
+  const filtersActive =
+    selectedGenres.length > 0 || selectedStatuses.length > 0 || yearMin !== "" || yearMax !== "";
+
+  const filteredResults = useMemo(() => {
+    return results.filter((item) => {
+      if (selectedGenres.length > 0 && !selectedGenres.some((g) => item.genres.includes(g))) {
+        return false;
+      }
+      if (selectedStatuses.length > 0 && item.source !== "tmdb" && !selectedStatuses.includes(item.status)) {
+        return false;
+      }
+      if (yearMin && item.year !== undefined && item.year < Number(yearMin)) return false;
+      if (yearMax && item.year !== undefined && item.year > Number(yearMax)) return false;
+      return true;
+    });
+  }, [results, selectedGenres, selectedStatuses, yearMin, yearMax]);
+
+  function toggleGenre(genre: string) {
+    setSelectedGenres((prev) => (prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]));
+  }
+
+  function toggleStatus(status: ContentStatus) {
+    setSelectedStatuses((prev) => (prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]));
+  }
+
+  function clearFilters() {
+    setSelectedGenres([]);
+    setSelectedStatuses([]);
+    setYearMin("");
+    setYearMax("");
+  }
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window === "undefined") return "grid";
     try {
@@ -296,6 +340,23 @@ export default function ExplorePage() {
         </div>
       </div>
 
+      {/* Filters */}
+      {results.length > 0 && (
+        <ExploreFilters
+          availableGenres={availableGenres}
+          selectedGenres={selectedGenres}
+          onToggleGenre={toggleGenre}
+          selectedStatuses={selectedStatuses}
+          onToggleStatus={toggleStatus}
+          yearMin={yearMin}
+          yearMax={yearMax}
+          onYearMinChange={setYearMin}
+          onYearMaxChange={setYearMax}
+          active={filtersActive}
+          onClear={clearFilters}
+        />
+      )}
+
       {/* Results */}
       <div className="explore-results">
         {loading ? (
@@ -305,37 +366,53 @@ export default function ExplorePage() {
             ))}
           </div>
         ) : results.length > 0 ? (
-          <>
-            {viewMode === "grid" ? (
-              <div className="series-grid">
-                {results.map((item) => (
-                  <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
-                ))}
-              </div>
-            ) : (
-              <div className="series-list">
-                {results.map((item) => (
-                  <SeriesListRow key={`${item.source}-${item.externalId}`} series={item} />
-                ))}
-              </div>
-            )}
+          filteredResults.length > 0 ? (
+            <>
+              {filtersActive && (
+                <p className="explore-filter-summary">
+                  Showing {filteredResults.length} of {results.length} loaded results
+                </p>
+              )}
+              {viewMode === "grid" ? (
+                <div className="series-grid">
+                  {filteredResults.map((item) => (
+                    <SeriesCard key={`${item.source}-${item.externalId}`} series={item} />
+                  ))}
+                </div>
+              ) : (
+                <div className="series-list">
+                  {filteredResults.map((item) => (
+                    <SeriesListRow key={`${item.source}-${item.externalId}`} series={item} />
+                  ))}
+                </div>
+              )}
 
-            {results.length < total && (
-              <div className="explore-load-more">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? "Loading..." : "Load More"}
-                </button>
-                {loadMoreError && (
-                  <p className="explore-load-more-error">{loadMoreError}</p>
-                )}
-              </div>
-            )}
-          </>
+              {results.length < total && (
+                <div className="explore-load-more">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? "Loading..." : "Load More"}
+                  </button>
+                  {loadMoreError && (
+                    <p className="explore-load-more-error">{loadMoreError}</p>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="explore-empty">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.3">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+              <p>No results match your filters</p>
+              <span>Try removing a filter or widening the year range</span>
+            </div>
+          )
         ) : searched ? (
           <div className="explore-empty">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.3">
