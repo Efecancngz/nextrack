@@ -2291,6 +2291,38 @@ img, video {
   color: var(--color-text-muted);
 }
 
+.redirect-button-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.redirect-button-full {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-top: var(--space-3);
+}
+
+.redirect-button-select {
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
 .btn-danger {
   background: var(--color-danger, #ef4444);
   color: #fff;

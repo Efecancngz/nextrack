@@ -11,6 +11,7 @@ import AddToLibraryButton from "@/components/AddToLibraryButton";
 import RatingWidget from "@/components/RatingWidget";
 import LanguageWaitWidget from "@/components/LanguageWaitWidget";
 import SeriesNoteWidget from "@/components/SeriesNoteWidget";
+import RedirectButton from "@/components/RedirectButton";
 import type { LibraryStatus } from "@/types/common";
 
 interface PageProps {
@@ -153,6 +154,21 @@ export default async function SeriesDetailPage({ params }: PageProps) {
               <LanguageWaitWidget
                 libraryItemId={existingItem.id}
                 initialValue={existingItem.waitLanguage}
+              />
+            )}
+            {user && (
+              <RedirectButton
+                title={series.title}
+                progress={
+                  existingItem?.status
+                    ? series.totalEpisodes != null
+                      ? { label: "episode", value: 0 }
+                      : series.totalChapters != null
+                        ? { label: "chapter", value: 0 }
+                        : null
+                    : null
+                }
+                variant="full"
               />
             )}
           </aside>
