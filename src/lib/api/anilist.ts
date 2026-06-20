@@ -218,3 +218,26 @@ export async function getTrendingManhwa(): Promise<SearchResult[]> {
 export async function getTrendingNovel(): Promise<SearchResult[]> {
   return getTrendingMedia("MANGA", "NOVEL");
 }
+
+const NEXT_AIRING_QUERY = `
+  query ($id: Int) {
+    Media(id: $id, type: ANIME) {
+      nextAiringEpisode { airingAt }
+    }
+  }
+`;
+
+/** Get the next airing episode's UTC instant (ISO string) for an anime, or null if none scheduled */
+export async function getAnimeNextAiringEpisode(anilistId: string): Promise<string | null> {
+  try {
+    const data = await anilistFetch<{ Media: { nextAiringEpisode: { airingAt: number } | null } }>(
+      NEXT_AIRING_QUERY,
+      { id: Number(anilistId) }
+    );
+    const airingAt = data.Media?.nextAiringEpisode?.airingAt;
+    return airingAt != null ? new Date(airingAt * 1000).toISOString() : null;
+  } catch (err) {
+    console.error(`[AniList] Failed to fetch next airing episode for media ${anilistId}:`, err);
+    return null;
+  }
+}

@@ -238,6 +238,21 @@ export async function getTvSeriesDetail(tmdbId: string): Promise<{
   return { detail, platforms };
 }
 
+/** Get the next episode air date for a TV series, or null if none scheduled / API key unset */
+export async function getTvNextAirDate(tmdbId: string): Promise<string | null> {
+  if (!API_KEY) return null; // no mock schedule data to synthesize — out of scope
+  try {
+    const detail = await tmdbFetch<{ next_episode_to_air: { air_date: string } | null }>(
+      `/tv/${tmdbId}`,
+      { language: "en-US" }
+    );
+    return detail.next_episode_to_air?.air_date ?? null;
+  } catch (err) {
+    console.error(`[TMDB] Failed to fetch next air date for series ${tmdbId}:`, err);
+    return null;
+  }
+}
+
 /** Get trending TV series (week) */
 export async function getTrendingTvSeries(): Promise<SearchResult[]> {
   if (!API_KEY) {

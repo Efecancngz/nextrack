@@ -2111,6 +2111,85 @@ img, video {
   font-size: 0.9375rem;
 }
 
+/* ─── Calendar Page ─── */
+.calendar-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.calendar-week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-3);
+}
+
+.calendar-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
+}
+
+.calendar-day-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  min-height: 100px;
+}
+
+.calendar-day-cell-today {
+  border-color: var(--color-brand);
+}
+
+.calendar-day-number {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.calendar-day-entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.calendar-entry-chip {
+  display: block;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+  font-size: 0.75rem;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.calendar-entry-chip:hover {
+  background: var(--color-bg-overlay);
+}
+
+.calendar-no-schedule {
+  margin-top: var(--space-8);
+}
+
+.calendar-no-schedule-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: var(--space-4);
+}
+
+.calendar-no-schedule-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 /* ─── Auth Pages ─── */
 .auth-page {
   display: flex;
