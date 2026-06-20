@@ -71,6 +71,7 @@ export default async function SeriesDetailPage({ params }: PageProps) {
   let existingItem: { id: string; status: LibraryStatus; waitLanguage: string | null } | null = null;
   let existingRating: { score: number; review: string | null } | null = null;
   let existingNoteContent: string | null = null;
+  let internalSeriesId: string | null = null;
 
   if (user) {
     const { source, externalId } = parseCompoundId(id);
@@ -78,6 +79,7 @@ export default async function SeriesDetailPage({ params }: PageProps) {
       where: { externalId_source: { externalId, source } },
     });
     if (seriesRow) {
+      internalSeriesId = seriesRow.id;
       const [itemRow, ratingRow, noteRow] = await Promise.all([
         prisma.libraryItem.findUnique({
           where: { userId_seriesId: { userId: user.id, seriesId: seriesRow.id } },
@@ -209,9 +211,9 @@ export default async function SeriesDetailPage({ params }: PageProps) {
               isSignedIn={!!user}
             />
 
-            {user && (
+            {user && internalSeriesId && (
               <SeriesNoteWidget
-                seriesId={series.id}
+                seriesId={internalSeriesId}
                 initialContent={existingNoteContent}
               />
             )}
