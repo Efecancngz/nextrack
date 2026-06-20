@@ -511,6 +511,94 @@ img, video {
   flex-shrink: 0;
 }
 
+.notification-bell-wrapper {
+  position: relative;
+}
+
+.notification-bell-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.notification-bell-button:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.notification-bell-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--color-danger, #ef4444);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-elevated);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-dropdown-empty {
+  padding: var(--space-4);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.notification-dropdown-item {
+  display: block;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+.notification-dropdown-item:hover {
+  background: var(--color-bg-elevated);
+}
+
+.notification-dropdown-toggle {
+  padding: var(--space-3);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+.notification-dropdown-toggle:hover {
+  color: var(--color-text-primary);
+}
+
 /* Hero eyebrow — plain text, not a badge */
 .hero-eyebrow-text {
   font-size: 0.8125rem;
