@@ -3,46 +3,30 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { SearchResult } from "@/types/series";
+import { ITEM_CATEGORY_LABELS, type ItemCard, type ItemCategory } from "@/types/item";
 
 interface HeroSliderProps {
-  tv: SearchResult[];
-  anime: SearchResult[];
-  manga: SearchResult[];
-  novel: SearchResult[];
+  byCategory: Record<ItemCategory, ItemCard[]>;
 }
 
-export default function HeroSlider({ tv, anime, manga, novel }: HeroSliderProps) {
+const CATEGORY_ORDER: ItemCategory[] = ["TYPE_A", "TYPE_B", "TYPE_C"];
+const CATEGORY_SLUG: Record<ItemCategory, string> = {
+  TYPE_A: "type-a",
+  TYPE_B: "type-b",
+  TYPE_C: "type-c",
+};
+
+export default function HeroSlider({ byCategory }: HeroSliderProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const autoPlayRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const slides = [
-    {
-      id: "tv",
-      title: "TV Series",
-      tagline: "Trending TV Series",
-      items: tv.slice(0, 3),
-    },
-    {
-      id: "anime",
-      title: "Anime",
-      tagline: "Trending Anime",
-      items: anime.slice(0, 3),
-    },
-    {
-      id: "manga",
-      title: "Manga",
-      tagline: "Trending Manga & Manhwa",
-      items: manga.slice(0, 3),
-    },
-    {
-      id: "novel",
-      title: "Novels",
-      tagline: "Trending Light Novels",
-      items: novel.slice(0, 3),
-    },
-  ].filter((s) => s.items.length >= 3);
+  const slides = CATEGORY_ORDER.map((category) => ({
+    id: CATEGORY_SLUG[category],
+    title: ITEM_CATEGORY_LABELS[category],
+    tagline: `Trending ${ITEM_CATEGORY_LABELS[category]}`,
+    items: (byCategory[category] ?? []).slice(0, 3),
+  })).filter((s) => s.items.length >= 3);
 
   // Auto-play effect
   useEffect(() => {
@@ -95,8 +79,8 @@ export default function HeroSlider({ tv, anime, manga, novel }: HeroSliderProps)
             <div className="hero-poster-grid">
               {slide.items.map((item, i) => (
                 <Link
-                  key={item.externalId}
-                  href={`/series/${item.source}-${item.externalId}`}
+                  key={item.id}
+                  href={`/items/${item.id}`}
                   className={`hero-poster-item hero-poster-${i}`}
                 >
                   {item.coverImage ? (
@@ -114,14 +98,13 @@ export default function HeroSlider({ tv, anime, manga, novel }: HeroSliderProps)
                         <span className="hero-poster-number">#{i + 1}</span>
                         <div className="hero-poster-meta">
                           <h3 className="hero-poster-title">{item.title}</h3>
-                          <div className="hero-poster-row">
-                            {item.year && <span className="hero-poster-year">{item.year}</span>}
-                            {item.ratingExternal && (
+                          {item.ratingExternal && (
+                            <div className="hero-poster-row">
                               <span className="hero-poster-rating">
                                 ★ {item.ratingExternal.toFixed(1)}
                               </span>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </>

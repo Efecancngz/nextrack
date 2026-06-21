@@ -1202,6 +1202,9 @@ img, video {
 .hero-slider-dot.anime { background: var(--color-anime); }
 .hero-slider-dot.manga { background: var(--color-manga); }
 .hero-slider-dot.novel { background: var(--color-light-novel); }
+.hero-slider-dot.type-a { background: var(--color-type-a); }
+.hero-slider-dot.type-b { background: var(--color-type-b); }
+.hero-slider-dot.type-c { background: var(--color-type-c); }
 
 .hero-slider-tab.active .hero-slider-dot {
   box-shadow: 0 0 4px currentColor;
