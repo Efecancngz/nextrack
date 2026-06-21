@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const itemCategoryEnum = z.enum(["TYPE_A", "TYPE_B", "TYPE_C"]);
+
+export const itemStatusEnum = z.enum([
+  "ONGOING",
+  "COMPLETED",
+  "HIATUS",
+  "CANCELLED",
+  "UPCOMING",
+]);
+
 export const trackingStatusEnum = z.enum([
   "ACTIVE",
   "PLANNED",
