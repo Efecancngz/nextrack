@@ -1,8 +1,7 @@
-import type { ContentType } from "./common";
+import type { ItemCategory } from "./item";
 
 export interface ProfileStatsData {
-  byContentType: Record<ContentType, number>;
-  episodesWatched: number;
-  chaptersRead: number;
+  byCategory: Record<ItemCategory, number>;
+  totalProgress: number;
   averageRating: number | null;
 }

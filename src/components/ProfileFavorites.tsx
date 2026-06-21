@@ -1,12 +1,9 @@
 import React from "react";
-import SeriesCardComponent from "./SeriesCard";
-import type { SeriesCard } from "@/types/series";
+import ItemCardComponent from "./ItemCard";
+import type { ItemCard } from "@/types/item";
 
 interface ProfileFavoritesProps {
-  // SeriesCard (data interface) is a structural superset of SearchResult, the
-  // prop type SeriesCardComponent actually expects — every favorite passed
-  // here satisfies it. Keep that relationship in mind if either type narrows.
-  favorites: SeriesCard[];
+  favorites: ItemCard[];
 }
 
 export default function ProfileFavorites({ favorites }: ProfileFavoritesProps) {
@@ -16,8 +13,8 @@ export default function ProfileFavorites({ favorites }: ProfileFavoritesProps) {
 
   return (
     <div className="series-grid">
-      {favorites.map((series) => (
-        <SeriesCardComponent key={`${series.source}-${series.externalId}`} series={series} />
+      {favorites.map((item) => (
+        <ItemCardComponent key={item.id} item={item} />
       ))}
     </div>
   );
