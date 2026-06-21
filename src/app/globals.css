@@ -46,6 +46,10 @@
   --color-light-novel:   #8b5cf6;
   --color-webtoon:       #06b6d4;
 
+  --color-type-a:        #3b82f6;
+  --color-type-b:        #10b981;
+  --color-type-c:        #f59e0b;
+
   /* Text */
   --color-text-primary:  #f0f2f7;
   --color-text-secondary:#9aa3b8;
@@ -344,6 +348,9 @@ img, video {
 .badge-manhwa      { background: #10b98120; color: var(--color-manhwa); }
 .badge-light-novel { background: #8b5cf620; color: var(--color-light-novel); }
 .badge-webtoon     { background: #06b6d420; color: var(--color-webtoon); }
+.badge-type-a      { background: #3b82f620; color: var(--color-type-a); }
+.badge-type-b      { background: #10b98120; color: var(--color-type-b); }
+.badge-type-c      { background: #f59e0b20; color: var(--color-type-c); }
 
 .badge-watching  { background: #6d6afe20; color: var(--color-watching); }
 .badge-plan      { background: #a78bfa20; color: var(--color-plan); }
