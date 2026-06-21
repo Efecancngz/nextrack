@@ -52,3 +52,4 @@ AGENTS.md
 .docker/
 postgres_data/
 graphify-out/
+.db-backups/
