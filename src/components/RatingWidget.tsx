@@ -4,12 +4,12 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface RatingWidgetProps {
-  compoundId: string;
+  itemId: string;
   initialRating: { score: number; review: string | null } | null;
   isSignedIn: boolean;
 }
 
-export default function RatingWidget({ compoundId, initialRating, isSignedIn }: RatingWidgetProps) {
+export default function RatingWidget({ itemId, initialRating, isSignedIn }: RatingWidgetProps) {
   const router = useRouter();
   const [score, setScore] = useState(initialRating?.score ?? 0);
   const [review, setReview] = useState(initialRating?.review ?? "");
@@ -24,7 +24,7 @@ export default function RatingWidget({ compoundId, initialRating, isSignedIn }: 
     setSaved(false);
     setError(null);
     try {
-      const res = await fetch(`/api/series/${compoundId}/rating`, {
+      const res = await fetch(`/api/items/${itemId}/rating`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ score, review: review || undefined }),
