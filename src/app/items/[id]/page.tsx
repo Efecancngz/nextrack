@@ -1,6 +1,5 @@
 import React from "react";
 import Image from "next/image";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ITEM_CATEGORY_LABELS, ITEM_STATUS_LABELS } from "@/types/item";

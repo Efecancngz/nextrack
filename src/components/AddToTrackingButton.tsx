@@ -33,21 +33,27 @@ export default function AddToTrackingButton({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/user-items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId, status }),
-      });
+      const res = entry
+        ? await fetch(`/api/user-items/${entry.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+          })
+        : await fetch("/api/user-items", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ itemId, status }),
+          });
       const data = await res.json();
       if (!data.success) {
-        setError(data.error || "Failed to add to tracking list");
+        setError(data.error || "Failed to update tracking status");
         return;
       }
       setEntry({ id: data.data.id, status: data.data.status });
       setOpen(false);
       router.refresh();
     } catch {
-      setError("Failed to add to tracking list");
+      setError("Failed to update tracking status");
     } finally {
       setLoading(false);
     }
