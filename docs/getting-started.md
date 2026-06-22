@@ -1,29 +1,16 @@
 # Getting Started Guide
 
-This document provides step-by-step instructions on setting up, running, and developing the **Free Serie Tracker** application locally (with or without Docker), along with details about integration APIs and prisma database commands.
+This document provides step-by-step instructions on setting up, running, and developing the **Generic SaaS Starter** application locally (with or without Docker), along with database commands.
 
 ## Prerequisites
 
 To run this application locally, you will need:
 - **Node.js** v20 or higher
 - **Docker & Docker Compose** (Optional, for containerized local database and application)
-- **External API Keys**:
-  - **TMDB API Key** (v3) - [Get it here](https://www.themoviedb.org/settings/api).
-  - **Google OAuth Client Credentials** - From [Google Cloud Console](https://console.cloud.google.com/).
-  - **NextAuth Secret** - A 32-character random string (generate with `openssl rand -base64 32`).
+- **Google OAuth Client Credentials** (optional — only needed to test the Google sign-in path; email/password auth works without it) — from [Google Cloud Console](https://console.cloud.google.com/).
+- **NextAuth Secret** — a 32-character random string (generate with `openssl rand -base64 32`).
 
----
-
-## Technical Stack & Integrated APIs
-
-The project integrates multiple data sources to provide comprehensive tracking information:
-
-| API | Purpose | Credentials Needed | Rate Limits |
-|---|---|---|---|
-| **TMDB API (v3)** | TV series metadata, platform availability, reviews, posters | `TMDB_API_KEY` | 40 req / 10 sec |
-| **AniList GraphQL** | Anime, manga, manhwa, light novel metadata & ratings | None (Public) | 90 req / min |
-| **MangaDex API** | Manga/manhwa chapter directories & feeds | None (Public) | 5 req / sec |
-| **Jikan API (MAL)** | Fallback database for anime/manga ratings and statistics | None (Public) | 3 req / sec |
+No external content-source API key is required: the starter ships with a built-in placeholder data source (`src/lib/api/example-source.ts`, seeded via `prisma/seed.ts`) so it runs fully offline. See [api-sources.md](api-sources.md) for how to swap in a real external API.
 
 ---
 
@@ -66,14 +53,15 @@ This option runs the Next.js app locally and connects to your serverless Neon Po
    ```bash
    npm install
    ```
-2. Run database migrations to push schema:
+2. Run database migrations to push schema, then seed the example data:
    ```bash
    # Generates Prisma client types
    npm run db:generate
-   
+
    # Run migrations (Neon DB)
    npm run db:migrate
    ```
+   `npm run db:migrate` also runs `prisma/seed.ts` (configured via `package.json`'s `"prisma": { "seed": "tsx prisma/seed.ts" }`), which loads the 12 example `Item` rows from `src/lib/api/example-source.ts` so the app has content to browse immediately.
 3. Start Next.js development server:
    ```bash
    npm run dev
@@ -86,9 +74,9 @@ This option runs the Next.js app locally and connects to your serverless Neon Po
 
 Prisma is used for database schema management, type generation, and migrations.
 
-- **Generate Prisma Client**: `npm run db:generate` (re-generates types when schema.prisma changes).
-- **Create a Migration**: `npm run db:migrate` (prompts for migration name, applies changes to database).
-- **Push Schema directly**: `npx prisma db push` (forces schema sync, useful for quick prototyping without creating migrations).
+- **Generate Prisma Client**: `npm run db:generate` (re-generates types when `schema.prisma` changes).
+- **Create a Migration**: `npm run db:migrate` (prompts for migration name, applies changes to database, runs the seed script).
+- **Push Schema directly**: `npm run db:push` (forces schema sync, useful for quick prototyping without creating migrations).
 - **Prisma Studio**: `npm run db:studio` (launches database GUI dashboard at `http://localhost:5555`).
 
 ---
@@ -109,3 +97,5 @@ To deploy to Cloudflare Pages & Workers using Wrangler and OpenNext:
    ```bash
    npm run deploy
    ```
+
+See [deploy.md](deploy.md) for why Cloudflare Workers is used instead of Vercel, and the full deploy architecture.
