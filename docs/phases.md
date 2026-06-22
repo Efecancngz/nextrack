@@ -7,6 +7,21 @@ Single developer project — prioritize working features over perfect code.
 
 ---
 
+## Pivot — Generic SaaS Starter (2026-06-21 →)
+
+**Decision:** all Phase 1/2 work below remains as the historical record of what was built as "Free Serie Tracker," but the project's forward direction changed: it now stays on GitHub as a generic, portfolio-quality "Generic SaaS Starter" template (auth, personal tracking, ratings, cron-based notifications) built on a content-agnostic `Item`/`UserItem` model, not a continuation of the TV/anime/manga tracker product. The pivot is split into three sub-projects:
+
+- **A — Core architecture** (schema, API, pages/components) — split further into:
+  - **A1 — Schema & Backend API**: done. New `Item`/`UserItem`/`Rating`/`Notification` Prisma models (replacing `Series`/`LibraryItem`/etc.), new `/api/items/*` and `/api/user-items/*` routes, `checkForItemUpdates()` notification logic genericized. 9 commits on `feat/generic-starter-a1-backend`.
+  - **A2 — Pages & Components**: done (12/12 tasks, all individually code-reviewed + a final whole-branch review). New/genericized: `ItemCard`/`ItemListRow`, `AddToTrackingButton`, `TrackingBoard`/`UserItemCard`/`UserItemRow`, `BrowseSuggestions`/`BrowseFilters`, `HeroSlider` (now takes a `byCategory` map), genericized `NotificationBell`/`ProfileStats`/`ProfileFavorites`/`RatingWidget`. New pages: `/browse` (replaces `/explore`), `/items/[id]` (replaces `/series/[id]`), `/my-items` (replaces `/library`), `/` and `/profile/[username]` rewritten. 16 commits, same branch. One Important post-review fix: `AddToTrackingButton` PATCHes an existing tracking entry instead of always POSTing (was 409-ing on already-tracked items).
+  - **A3 — Cleanup sweep**: not started. Deletes the old domain-specific files left on disk (old pages: `/explore`, `/library`, `/series/[id]`, `/calendar`, `/settings`; old components: `SeriesCard`, `LibraryBoard`, `RedirectButton`, `LanguageWaitWidget`, etc.; old API routes; old `lib/api/{tmdb,anilist,mangadex,jikan}.ts` clients; old `lib/calendar.ts`/`language-tracking.ts`). Until this runs, full-project `npm run type-check`/`npm run lint` show many pre-existing errors from these now-orphaned files referencing deleted Prisma models — expected, not a regression from A1/A2.
+- **B — Docs & branding**: not started. Rewrites `CLAUDE.md`'s Project Overview/Content Types/Tech Stack framing, `docs/*` narrative content, and this file's historical phase language to describe a generic starter rather than a TV tracker.
+- **C — Deploy verification**: not started. Confirms the Cloudflare Workers deploy path (and the still-unverified cron `scheduled()` handler — see Phase 2.5 entry below) works end-to-end on the new schema.
+
+All work happens on branch `feat/generic-starter-a1-backend`. Per the project's NO AUTO-PUSH rule, pushes happen only on explicit user instruction (this branch has since been pushed to `origin`).
+
+---
+
 ## Phase 1 — MVP (Minimum Viable Product)
 
 **Goal**: A functional tracker where users can discover, search, and track series.
