@@ -1,4 +1,4 @@
-# Project Structure Deep Dive — Free Serie Tracker
+# Project Structure Deep Dive — Generic SaaS Starter
 
 Her klasörün **neden** var olduğu, **ne içerdiği** ve **kuralları**.
 
@@ -8,15 +8,17 @@ Her klasörün **neden** var olduğu, **ne içerdiği** ve **kuralları**.
 
 ```
 serietracker/
-├── CLAUDE.md                     # AI asistan referans dosyası
+├── CLAUDE.md                     # AI asistan referans dosyası (gitignored)
 ├── docs/                         # Proje dokümantasyonu (bu dosyalar)
-│   ├── architecture.md           # Üst düzey mimari
-│   ├── design-patterns.md        # Pattern detayları + örnek implementasyonlar
+│   ├── architecture.md           # Gerçek sistem mimarisi
+│   ├── design-patterns.md        # Bu kod tabanında gerçekten kullanılan pattern'ler
 │   ├── database-schema.md        # ERD + Prisma şeması
 │   ├── api-contracts.md          # Endpoint sözleşmeleri
-│   ├── swagger-setup.md          # OpenAPI/Swagger kurulumu
+│   ├── api-sources.md            # Örnek veri kaynağı örüntüsü
+│   ├── deploy.md                 # Cloudflare deploy rehberi
+│   ├── getting-started.md        # Yerel kurulum rehberi
 │   ├── project-structure.md      # Bu dosya
-│   └── phases.md                 # Geliştirme fazları
+│   └── phases.md                 # Geliştirme geçmişi
 ├── src/                          # Tüm uygulama kodu
 ├── prisma/                       # Veritabanı şeması ve migration'lar
 ├── public/                       # Statik dosyalar (favicon, logolar)
@@ -27,6 +29,9 @@ serietracker/
 ├── tailwind.config.ts            # Tailwind CSS konfigürasyonu
 ├── tsconfig.json                 # TypeScript konfigürasyonu
 ├── eslint.config.mjs             # ESLint konfigürasyonu
+├── vitest.config.ts              # Vitest test konfigürasyonu
+├── wrangler.toml                 # Cloudflare Workers konfigürasyonu
+├── custom-worker.ts              # OpenNext worker wrapper (fetch handler)
 └── package.json
 ```
 
@@ -36,113 +41,64 @@ serietracker/
 
 ```
 src/
-├── app/                          # Next.js App Router (sayfa + API)
+├── app/                          # Next.js App Router (sayfa + API) — DÜZ yapı, route group yok
 ├── components/                   # React bileşenleri
-├── lib/                          # İş mantığı, servisler, altyapı
+├── lib/                          # İş mantığı, yardımcılar, altyapı
 ├── types/                        # TypeScript tip tanımları
-└── hooks/                        # Custom React hook'ları
+└── generated/prisma/             # Prisma client çıktısı (gitignored, `npm run db:generate` ile üretilir)
 ```
+
+**Not:** Bu projede `repositories/`, `services/`, `providers/` katmanları YOKTUR. API Route'lar Prisma'yı doğrudan çağırır. Bkz. [architecture.md](architecture.md).
 
 ---
 
 ## `src/app/` — Next.js App Router
 
-**Kural**: Bu klasör sadece routing ve layout tanımlar. İş mantığı buraya YAZILMAZ.
-
 ```
 src/app/
-├── layout.tsx                    # Root layout — HTML, fontlar, tema provider
+├── page.tsx                      # Ana sayfa — hero slider + trending grid
+├── layout.tsx                    # Root layout — HTML, fontlar, navbar, footer
 ├── globals.css                   # Global stiller, Tailwind @import, CSS variables
 ├── not-found.tsx                 # 404 sayfası
 ├── error.tsx                     # Genel hata sayfası
 ├── loading.tsx                   # Genel loading state
+├── icon.tsx, apple-icon.tsx      # Favicon üretimi
 │
-├── (auth)/                       # Auth sayfa grubu (ayrı layout)
-│   ├── layout.tsx                # Auth layout — minimal, logo + form
-│   ├── login/
-│   │   └── page.tsx              # Giriş sayfası
-│   └── register/
-│       └── page.tsx              # Kayıt sayfası
+├── auth/
+│   ├── signin/page.tsx           # Giriş sayfası
+│   ├── signup/page.tsx           # Kayıt sayfası
+│   └── set-username/page.tsx     # Kullanıcı adı belirleme akışı
 │
-├── (main)/                       # Ana uygulama grubu (navbar + footer)
-│   ├── layout.tsx                # Main layout — navbar, sidebar, footer
-│   ├── page.tsx                  # Ana sayfa (trending, yeni bölümler)
-│   ├── explore/
-│   │   └── page.tsx              # Keşfet/Arama sayfası
-│   ├── series/
-│   │   └── [id]/
-│   │       └── page.tsx          # Seri detay sayfası
-│   └── library/
-│       └── page.tsx              # Kişisel kütüphane (auth gerekli)
+├── browse/page.tsx               # Arama/filtre/sıralama — debounce'lu, autocomplete'li
+├── items/[id]/page.tsx           # Item detay sayfası
+├── my-items/page.tsx             # requireAuth()-gated — kişisel takip panosu
+├── profile/[username]/page.tsx   # Herkese açık, auth gerektirmez — istatistik + favoriler
 │
-├── api/                          # REST API Route'ları
-│   ├── docs/
-│   │   └── route.ts              # GET — Swagger JSON spec
-│   ├── auth/
-│   │   ├── [...nextauth]/
-│   │   │   └── route.ts          # Auth.js catch-all handler
-│   │   ├── register/
-│   │   │   └── route.ts          # POST — Email/password kayıt
-│   │   └── session/
-│   │       └── route.ts          # GET — Aktif session bilgisi
-│   ├── series/
-│   │   ├── route.ts              # GET — Arama (query params)
-│   │   ├── trending/
-│   │   │   └── route.ts          # GET — Trending listesi
-│   │   └── [id]/
-│   │       ├── route.ts          # GET — Seri detayı
-│   │       ├── similar/
-│   │       │   └── route.ts      # GET — Benzer seriler
-│   │       ├── note/
-│   │       │   └── route.ts      # GET, PUT, DELETE — Kişisel özel not
-│   │       └── languages/
-│   │           └── route.ts      # GET — Dil/altyazı durum bilgisi
-│   ├── explore/
-│   │   ├── route.ts              # GET — Filtreli keşfet
-│   │   ├── genres/
-│   │   │   └── route.ts          # GET — Tür listesi
-│   │   ├── platforms/
-│   │   │   └── route.ts          # GET — Platform listesi
-│   │   └── ai-search/
-│   │       └── route.ts          # POST — AI destekli semantik arama (Phase 2.7)
-│   ├── library/
-│   │   ├── route.ts              # GET — Liste, POST — Ekle
-│   │   └── [id]/
-│   │       ├── route.ts              # PATCH — Durum güncelle, DELETE — Kaldır
-│   │       └── progress/
-│   │           └── route.ts      # PATCH — Bölüm ilerlemesi güncelle
-│   ├── ratings/
-│   │   ├── route.ts              # POST — Puan ver
-│   │   └── [id]/
-│   │       └── route.ts          # PATCH — Güncelle, DELETE — Sil
-│   ├── social/
-│   │   ├── feed/
-│   │   │   └── route.ts          # GET — Arkadaş aktivite akışı (Phase 3.2)
-│   │   └── follow/
-│   │       └── [userId]/
-│   │           └── route.ts      # POST — Takip et, DELETE — Takipten çık
-│   ├── users/
-│   │   └── [id]/
-│   │       └── badges/
-│   │           └── route.ts      # GET — Kullanıcı rozetleri (Phase 3.5)
-│
-└── api-docs/
-    └── page.tsx                  # Swagger UI sayfası
+└── api/
+    ├── auth/[...nextauth]/route.ts   # Auth.js catch-all handler
+    ├── auth/register/route.ts        # POST — e-posta/şifre kayıt
+    ├── items/route.ts                # GET — liste/filtre (q/category/status)
+    ├── items/suggest/route.ts        # GET — otomatik tamamlama, 8 ile sınırlı
+    ├── items/trending/route.ts       # GET — trend olan item'lar
+    ├── items/[id]/route.ts           # GET — item detayı
+    ├── items/[id]/rating/route.ts    # PUT — kişisel puan ver/güncelle
+    ├── user-items/route.ts           # GET/POST — takip listesi / takibe ekle
+    ├── user-items/[id]/route.ts      # PATCH/DELETE — durum/favori/ilerleme güncelle, kaldır
+    ├── user/username/route.ts        # POST — kullanıcı adı belirle
+    └── notifications/
+        ├── route.ts                  # GET — bildirim listesi + okunmamış sayısı
+        ├── check/route.ts            # POST — yeni güncellemeleri kontrol et (throttled)
+        ├── mark-read/route.ts        # PATCH — tümünü okundu işaretle
+        └── settings/route.ts         # PATCH — bildirim aç/kapa
 ```
-
-### Route Group Kuralları
-
-- **`(auth)/`**: Giriş/kayıt sayfaları — minimal layout, navbar yok
-- **`(main)/`**: Ana uygulama — tam layout (navbar, footer, sidebar)
-- Parantezli klasörler URL'ye yansımaz → `/login` olur, `/auth/login` olmaz
 
 ### API Route Kuralları
 
-1. Her `route.ts` sadece HTTP method export'u yapar (`GET`, `POST`, `PATCH`, `DELETE`)
-2. Her handler `withErrorHandler` middleware'i ile sarılır
-3. Auth gerektiren endpoint'ler `withAuth` middleware'i kullanır
-4. Her input Zod ile validate edilir
-5. İş mantığı Service katmanına delege edilir
+1. Her `route.ts` HTTP method export'u yapar (`GET`, `POST`, `PATCH`, `DELETE`)
+2. Her handler `compose(withErrorHandler, withRateLimit)(handler)` ile sarılır
+3. Auth gerektiren endpoint'ler handler içinde `requireAuth()` çağırır (ayrı bir middleware değil)
+4. Her input Zod ile validate edilir (`src/lib/validations/*.ts`)
+5. Prisma doğrudan handler içinde çağrılır — Service/Repository katmanı yok
 
 ---
 
@@ -152,58 +108,18 @@ src/app/
 
 ```
 src/components/
-├── ui/                           # shadcn/ui temel bileşenleri
-│   ├── button.tsx                # npx shadcn@latest add button
-│   ├── card.tsx
-│   ├── dialog.tsx                # Modal
-│   ├── dropdown-menu.tsx
-│   ├── input.tsx
-│   ├── label.tsx
-│   ├── select.tsx
-│   ├── skeleton.tsx              # Loading iskeletleri
-│   ├── tabs.tsx
-│   ├── toast.tsx                 # Bildirim toast
-│   ├── tooltip.tsx
-│   └── badge.tsx
-├── Navbar.tsx                    # Üst navigasyon barı
-├── Footer.tsx                    # Alt bilgi alanı
-├── SeriesCard.tsx                # Seri kartı görünümü
-├── HeroSlider.tsx                # Slayt/slider bileşeni (ana sayfa kahraman görseli)
-│
-├── series/                       # Seri ile ilgili bileşenler (planlanan ek bileşenler)
-│   ├── series-card.tsx           # Kart görünümü — poster + bilgi
-│   ├── series-list-item.tsx      # Liste görünümü — tek satır
-│   ├── series-grid.tsx           # Grid konteyner + view mode toggle
-│   ├── series-hero.tsx           # Detay sayfası hero banner
-│   ├── rating-badge.tsx          # Çoklu kaynak puan göstergesi
-│   ├── rating-input.tsx          # Kullanıcı puan girişi (1-10 stars)
-│   ├── platform-list.tsx         # Platform ikonları listesi
-│   ├── progress-tracker.tsx      # S2E5 / Ch.45 ilerleyici
-│   ├── genre-tags.tsx            # Tür etiketleri
-│   ├── episode-list.tsx          # Bölüm listesi (detay sayfası)
-│   └── library-status-select.tsx # Durum seçici (Watching, Plan, vb.)
-│
-├── layout/                       # Sayfa düzeni bileşenleri
-│   ├── navbar.tsx                # Üst navigasyon çubuğu
-│   ├── mobile-nav.tsx            # Mobil hamburger menü
-│   ├── footer.tsx                # Alt bilgi
-│   ├── theme-toggle.tsx          # Dark/Light/System toggle
-│   └── user-menu.tsx             # Kullanıcı avatar + dropdown
-│
-├── auth/                         # Auth form bileşenleri
-│   ├── login-form.tsx            # Email/password giriş formu
-│   ├── register-form.tsx         # Kayıt formu
-│   ├── google-button.tsx         # Google ile giriş butonu
-│   └── auth-guard.tsx            # Protected route wrapper
-│
-└── common/                       # Genel amaçlı bileşenler
-    ├── search-input.tsx          # Debounced arama input
-    ├── pagination.tsx            # Sayfalama bileşeni
-    ├── loading-skeleton.tsx      # Genel yükleme iskeleti
-    ├── empty-state.tsx           # Boş durum görseli + mesaj
-    ├── error-state.tsx           # Hata durumu görseli
-    ├── content-type-tabs.tsx     # TV/Anime/Manga/... tab'ları
-    └── view-mode-toggle.tsx      # Kart ↔ Liste geçiş butonu
+├── ui/                            # shadcn/ui temel bileşenleri
+├── Navbar.tsx, Footer.tsx         # Sayfa düzeni
+├── HeroSlider.tsx                 # Ana sayfa kahraman görseli — kategoriye göre gruplu
+├── ItemCard.tsx, ItemListRow.tsx  # Item kart/satır görünümü
+├── AddToTrackingButton.tsx        # Item detay sayfasında takibe ekle/durum değiştir
+├── RatingWidget.tsx               # Kişisel puanlama widget'ı
+├── TrackingBoard.tsx              # Kişisel takip panosu (durum filtreli, grid/liste)
+├── UserItemCard.tsx, UserItemRow.tsx  # TrackingBoard'un kart/satır görünümü
+├── BrowseFilters.tsx              # Kategori/durum filtreleri
+├── BrowseSuggestions.tsx          # Arama otomatik tamamlama açılır listesi
+├── ProfileHeader.tsx, ProfileStats.tsx, ProfileFavorites.tsx  # Profil sayfası bileşenleri
+└── NotificationBell.tsx, NotificationTrigger.tsx  # Bildirim zili + sessiz tetikleyici
 ```
 
 ### Bileşen Kuralları
@@ -214,89 +130,44 @@ src/components/
 | **Prop-driven** | Bileşen kendi datasını çekmez, üstten prop alır. |
 | **Tek sorumluluk** | Her bileşen tek bir iş yapar. |
 | **Interface Props** | `interface Props {}` kullan, `type Props =` değil. |
-| **Barrel export** | Her alt klasörde `index.ts` ile re-export. |
 
 ---
 
 ## `src/lib/` — İş Mantığı & Altyapı
 
-**Kural**: Framework-agnostic kod buraya gelir. React import'u OLMAZ (hook'lar hariç, onlar `hooks/`'ta).
-
 ```
 src/lib/
-├── auth/                         # Auth.js konfigürasyonu
-│   ├── config.ts                 # Auth.js options (providers, callbacks)
-│   └── helpers.ts                # getCurrentUser(), requireAuth() helpers
-│
-├── db/                           # Veritabanı bağlantısı
-│   └── client.ts                 # Prisma singleton client
-│
-├── repositories/                 # Data Access Layer — DB sorguları
-│   ├── base.repository.ts        # Abstract base class
-│   ├── series.repository.ts      # Series tablosu
-│   ├── library.repository.ts     # UserLibrary + Progress
-│   ├── rating.repository.ts      # UserRating + ExternalRating
-│   ├── user.repository.ts        # User tablosu
-│   └── index.ts                  # Barrel export
-│
-├── providers/                    # External API Providers (Strategy Pattern)
-│   ├── content-provider.interface.ts  # Ortak interface
-│   ├── tmdb.provider.ts          # TMDB API — TV dizileri
-│   ├── anilist.provider.ts       # AniList GraphQL — Anime, Manga, LN
-│   ├── mangadex.provider.ts      # MangaDex API — Manga/Manhwa chapters
-│   ├── jikan.provider.ts         # Jikan (MAL) — Backup ratings
-│   ├── provider.factory.ts       # Factory — ContentType → Provider
-│   └── index.ts
-│
-├── services/                     # Service Layer — İş mantığı
-│   ├── series.service.ts         # Seri keşfetme, arama, detay
-│   ├── library.service.ts        # Kütüphane yönetimi
-│   ├── rating.service.ts         # Puanlama mantığı
-│   ├── auth.service.ts           # Kayıt, şifre hashing
-│   └── index.ts
-│
-├── middleware/                   # API middleware HOF'ları
-│   ├── error-handler.ts          # Global try-catch wrapper
-│   ├── rate-limit.ts             # Token bucket rate limiter
-│   ├── auth-guard.ts             # Auth kontrolü
-│   └── validate.ts               # Zod validation wrapper
-│
-├── validations/                  # Zod şemaları
-│   ├── auth.ts                   # registerSchema, loginSchema
-│   ├── series.ts                 # searchSchema, exploreSchema
-│   ├── library.ts                # addToLibrarySchema, progressSchema
-│   ├── rating.ts                 # ratingSchema
-│   └── common.ts                 # paginationSchema, idSchema
-│
-├── adapters/                     # Veri dönüşüm adaptörleri
-│   └── rating.adapter.ts         # Rating normalization (0-10 scale)
-│
-├── errors/                       # Custom error sınıfları
-│   └── index.ts                  # AppError class + factory methods
-│
-├── swagger/                      # OpenAPI/Swagger konfigürasyonu
-│   └── config.ts                 # swagger-jsdoc options + spec
-│
-└── utils/                        # Yardımcı fonksiyonlar
-    ├── api-response.ts           # apiResponse(), apiError() helpers
-    ├── date.ts                   # Tarih formatlama
-    ├── string.ts                 # Slug, truncate vb.
-    └── cn.ts                     # Tailwind className merge (shadcn)
+├── api/example-source.ts         # Örnek veri kaynağı — gerçek dış API'nin yerine geçen placeholder
+├── auth/
+│   ├── config.ts                 # Auth.js options (Node runtime)
+│   ├── edge.ts                   # Edge-uyumlu hafif NextAuth instance (Prisma/bcrypt import etmez)
+│   └── helpers.ts                # requireAuth(), getCurrentUser()
+├── db/prisma.ts                  # Prisma singleton client
+├── notifications.ts              # checkForItemUpdates() — throttled, paralel, transactional yazma
+├── utils.ts                      # cn() — Tailwind className merge
+├── utils/
+│   ├── api-response.ts           # successResponse(), errorResponse(), Responses.{notFound,...}
+│   ├── app-error.ts              # AppError sınıfı + factory metodları
+│   └── middleware.ts             # withErrorHandler, withRateLimit, compose() HOF'ları
+└── validations/
+    ├── auth.ts                   # registerSchema
+    ├── item.ts                   # itemCategoryEnum, addToTrackingSchema, rateItemSchema, vb.
+    └── notifications.ts          # updateNotificationSettingsSchema
 ```
+
+**Kural**: Framework-agnostic kod buraya gelir. React import'u OLMAZ.
 
 ### Katman İlişkileri
 
 ```
-API Routes → Services → Repositories → Prisma (DB)
-                     → Providers → External APIs (TMDB, AniList)
-                     → Adapters → Rating normalization
+API Routes → Prisma (doğrudan) → PostgreSQL
+API Routes → src/lib/utils/* (hata yönetimi, response formatlama, rate limit)
+API Routes → src/lib/validations/* (Zod doğrulama)
 ```
 
 **KESİNLİKLE OLMAYACAK İLİŞKİLER:**
-- ❌ API Route → Repository (Service'i atlama)
-- ❌ Component → Repository (Presentation → DAL)
-- ❌ Provider → Repository (birbirinden bağımsız)
-- ❌ Service → API Route (ters bağımlılık)
+- ❌ Component → Prisma (Presentation katmanı veriye doğrudan erişmez, sayfa Server Component'i çeker ve prop olarak geçer)
+- ❌ Var olmayan bir Service/Repository katmanına referans
 
 ---
 
@@ -304,34 +175,11 @@ API Routes → Services → Repositories → Prisma (DB)
 
 ```
 src/types/
-├── api.ts                        # API request/response tipleri
-├── series.ts                     # SeriesCard, SeriesDetail, Platform
-├── library.ts                    # LibraryEntry, Progress, LibraryStatus
-├── rating.ts                     # UserRating, ExternalRating
-├── auth.ts                       # Session, User extend
-├── providers.ts                  # ContentProvider interface tipleri
-└── common.ts                     # PaginationParams, ApiResponse<T>
-```
-
-### Tip Paylaşım Kuralları
-
-- Prisma otomatik tipleri: `@prisma/client`'tan import
-- API response tipleri: `types/api.ts`'den import — hem frontend hem backend kullanır
-- Provider tipleri: `types/providers.ts` — sadece lib/ katmanında kullanılır
-- Component prop tipleri: Bileşen dosyasının içinde tanımlanır
-
----
-
-## `src/hooks/` — Custom React Hook'ları
-
-```
-src/hooks/
-├── use-debounce.ts               # Debounced değer (arama input)
-├── use-library.ts                # Kütüphane CRUD + optimistic updates
-├── use-theme.ts                  # Tema yönetimi (dark/light/system)
-├── use-view-mode.ts              # Kart/Liste görünüm toggle
-├── use-media-query.ts            # Responsive breakpoint detection
-└── use-search.ts                 # Arama state + debounce + API çağrısı
+├── common.ts                     # ApiResponse<T>, PaginationMeta, PaginatedResponse<T> — sadece generic tipler
+├── item.ts                       # ItemCategory, ItemStatus, ItemCard, ItemDetail
+├── user-item.ts                  # TrackingStatus, UserItemEntry
+├── profile.ts                    # ProfileStatsData
+└── next-auth.d.ts                # Auth.js Session/JWT tip genişletmeleri
 ```
 
 ---
@@ -340,11 +188,9 @@ src/hooks/
 
 ```
 prisma/
-├── schema.prisma                 # Ana veritabanı şeması
-├── migrations/                   # Otomatik oluşan migration dosyaları
-│   └── 20260615_init/
-│       └── migration.sql
-└── seed.ts                       # Test verileri (opsiyonel)
+├── schema.prisma                 # Ana veritabanı şeması — User/Account/Session/VerificationToken + Item/UserItem/Rating/Notification
+├── migrations/                   # Migration dosyaları (asla elle silinmez)
+└── seed.ts                       # example-source.ts'deki 12 örnek Item'ı veritabanına yükler
 ```
 
 ---
@@ -353,16 +199,16 @@ prisma/
 
 | Öğe | Format | Örnek |
 |---|---|---|
-| Dosya adı | `kebab-case` | `series-card.tsx`, `rating.adapter.ts` |
-| React bileşen | `PascalCase` | `SeriesCard`, `RatingBadge` |
-| Fonksiyon/değişken | `camelCase` | `getUserLibrary`, `isStale` |
-| Sabit | `UPPER_SNAKE_CASE` | `MAX_PAGE_SIZE`, `CACHE_TTL` |
-| Tip/Interface | `PascalCase` | `SeriesCardResponse`, `ContentProvider` |
-| Enum değeri | `UPPER_SNAKE_CASE` | `TV_SERIES`, `PLAN_TO_WATCH` |
+| Dosya adı | `kebab-case` | `example-source.ts`, `app-error.ts` |
+| React bileşen | `PascalCase` | `ItemCard`, `TrackingBoard` |
+| Fonksiyon/değişken | `camelCase` | `requireAuth`, `successResponse` |
+| Sabit | `UPPER_SNAKE_CASE` | `EXAMPLE_ITEMS` |
+| Tip/Interface | `PascalCase` | `ItemCard`, `UserItemEntry` |
+| Enum değeri | `UPPER_SNAKE_CASE` | `TYPE_A`, `ACTIVE` |
 | CSS class | `kebab-case` | Tailwind utility class'ları |
-| Env variable | `UPPER_SNAKE_CASE` | `DATABASE_URL`, `TMDB_API_KEY` |
-| API endpoint | `kebab-case` | `/api/series/trending` |
-| DB tablo | `PascalCase` | Prisma convention: `Series`, `UserLibrary` |
+| Env variable | `UPPER_SNAKE_CASE` | `DATABASE_URL`, `NEXTAUTH_SECRET` |
+| API endpoint | `kebab-case` | `/api/user-items` |
+| DB tablo | `PascalCase` | Prisma convention: `Item`, `UserItem` |
 
 ---
 
@@ -370,17 +216,16 @@ prisma/
 
 ```typescript
 // 1. External packages
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 import { z } from "zod";
 
 // 2. Internal modules (absolute path with @/)
-import { SeriesService } from "@/lib/services/series.service";
-import { searchSchema } from "@/lib/validations/series";
-import { withErrorHandler } from "@/lib/middleware/error-handler";
+import { prisma } from "@/lib/db/prisma";
+import { itemCategoryEnum } from "@/lib/validations/item";
+import { withErrorHandler, withRateLimit, compose } from "@/lib/utils/middleware";
 
 // 3. Types
-import type { SeriesCardResponse } from "@/types/api";
+import type { ItemCard } from "@/types/item";
 
 // 4. Relative imports (avoid if possible, use @/ instead)
-import { formatDate } from "./helpers";
 ```
