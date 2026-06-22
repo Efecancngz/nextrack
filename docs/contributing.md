@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-Welcome to the **Free Serie Tracker** repository! To keep the codebase clean, readable, and maintainable, please follow these guidelines when contributing.
+Welcome to the **Generic SaaS Starter** repository! To keep the codebase clean, readable, and maintainable, please follow these guidelines when contributing.
 
 ## Git Workflow
 
@@ -14,9 +14,9 @@ Welcome to the **Free Serie Tracker** repository! To keep the codebase clean, re
    - `chore: <description>` (dependencies, build configs)
 
    *Examples:*
-   - `feat: add jikan api client for mal integration`
+   - `feat: add user-items progress increment endpoint`
    - `fix: resolve dynamic route param promise resolution in next.js 16`
-   - `style: adjust explore page grid spacing`
+   - `style: adjust browse page grid spacing`
 
 2. **No Automated Pushes**
    - The AI agent must never automatically run `git push`. Pushes must be approved or executed manually by the user.
