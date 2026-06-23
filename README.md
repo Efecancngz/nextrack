@@ -2,7 +2,7 @@
 
 *Read this in [Turkish / Türkçe](#türkçe)*
 
-Generic SaaS Starter is a full-stack Next.js 16 template demonstrating a working pattern for auth, personal content tracking, dual ratings, and cron-based notifications — built on a content-agnostic `Item`/`UserItem` data model you can adapt to any domain (a course tracker, a reading list, a habit tracker, a watch list — anything with "items a user tracks progress and opinions on").
+Generic SaaS Starter is a full-stack Next.js 16 template demonstrating a working pattern for auth, personal content tracking, dual ratings, and throttled update notifications — built on a content-agnostic `Item`/`UserItem` data model you can adapt to any domain (a course tracker, a reading list, a habit tracker, a watch list — anything with "items a user tracks progress and opinions on").
 
 This is a portfolio/demonstration project, not a live product. It ships with one placeholder example data source (`src/lib/api/example-source.ts`) standing in for a real external API integration — see [api-sources.md](docs/api-sources.md) for the pattern to follow when wiring in a real one.
 
@@ -84,7 +84,7 @@ This project is built for portfolio and demonstration purposes. All rights reser
 
 # Türkçe
 
-Generic SaaS Starter, kimlik doğrulama, kişisel içerik takibi, çiftli puanlama sistemi ve cron tabanlı bildirimler için çalışan bir örüntüyü gösteren, Next.js 16 üzerine kurulu full-stack bir şablon projedir. Herhangi bir alana uyarlanabilen, içerik bağımsız bir `Item`/`UserItem` veri modeli üzerine inşa edilmiştir (kurs takibi, okuma listesi, alışkanlık takibi, izleme listesi — kullanıcının ilerleme ve görüş kaydettiği her şey).
+Generic SaaS Starter, kimlik doğrulama, kişisel içerik takibi, çiftli puanlama sistemi ve throttle'lı güncelleme bildirimleri için çalışan bir örüntüyü gösteren, Next.js 16 üzerine kurulu full-stack bir şablon projedir. Herhangi bir alana uyarlanabilen, içerik bağımsız bir `Item`/`UserItem` veri modeli üzerine inşa edilmiştir (kurs takibi, okuma listesi, alışkanlık takibi, izleme listesi — kullanıcının ilerleme ve görüş kaydettiği her şey).
 
 Bu proje canlı bir ürün değil, bir portfolyo/demo projesidir. Gerçek bir dış API entegrasyonunun yerine geçen tek bir örnek veri kaynağıyla (`src/lib/api/example-source.ts`) birlikte gelir — gerçek bir kaynak bağlamak için izlenecek örüntü için [api-sources.md](docs/api-sources.md) dosyasına bakın.
 
