@@ -9,6 +9,8 @@ Her klasörün **neden** var olduğu, **ne içerdiği** ve **kuralları**.
 ```
 serietracker/
 ├── CLAUDE.md                     # AI asistan referans dosyası (gitignored)
+├── AGENTS.md                     # Next.js 16 breaking-change uyarıları (takip ediliyor, gitignored DEĞİL)
+├── README.md                     # Proje tanıtımı (EN + TR)
 ├── docs/                         # Proje dokümantasyonu (bu dosyalar)
 │   ├── architecture.md           # Gerçek sistem mimarisi
 │   ├── design-patterns.md        # Bu kod tabanında gerçekten kullanılan pattern'ler
@@ -22,11 +24,18 @@ serietracker/
 ├── src/                          # Tüm uygulama kodu
 ├── prisma/                       # Veritabanı şeması ve migration'lar
 ├── public/                       # Statik dosyalar (favicon, logolar)
+├── tests/unit/                   # Vitest birim testleri
 ├── .env.example                  # Env değişkenleri şablonu
 ├── .env.local                    # Gerçek env değişkenleri (gitignore'da)
 ├── .gitignore
+├── .dockerignore
+├── Dockerfile                    # Container build tanımı
+├── docker-compose.yml            # Yerel container orkestrasyon
+├── components.json               # shadcn/ui CLI konfigürasyonu
 ├── next.config.ts                # Next.js konfigürasyonu
-├── tailwind.config.ts            # Tailwind CSS konfigürasyonu
+├── open-next.config.ts           # OpenNext (Cloudflare adapter) konfigürasyonu
+├── postcss.config.mjs            # PostCSS/Tailwind v4 konfigürasyonu (Tailwind v4'te ayrı tailwind.config.ts YOK)
+├── prisma.config.ts              # Prisma CLI konfigürasyonu
 ├── tsconfig.json                 # TypeScript konfigürasyonu
 ├── eslint.config.mjs             # ESLint konfigürasyonu
 ├── vitest.config.ts              # Vitest test konfigürasyonu
@@ -45,8 +54,13 @@ src/
 ├── components/                   # React bileşenleri
 ├── lib/                          # İş mantığı, yardımcılar, altyapı
 ├── types/                        # TypeScript tip tanımları
+├── middleware.ts                 # Edge runtime route koruması (bkz. aşağıda)
 └── generated/prisma/             # Prisma client çıktısı (gitignored, `npm run db:generate` ile üretilir)
 ```
+
+### `src/middleware.ts` — Edge Route Koruması
+
+`experimental-edge` runtime'da çalışır, `src/lib/auth/edge.ts`'deki hafif (Prisma/bcrypt importsuz) NextAuth instance'ını sarar. `/my-items` altını oturum açmamış kullanıcılardan korur ve oturum açmış ama kullanıcı adı belirlememiş kullanıcıları `/auth/set-username`'e yönlendirir. `matcher` API route'larını, statik asset'leri ve görselleri hariç tutar.
 
 **Not:** Bu projede `repositories/`, `services/`, `providers/` katmanları YOKTUR. API Route'lar Prisma'yı doğrudan çağırır. Bkz. [architecture.md](architecture.md).
 
@@ -108,7 +122,10 @@ src/app/
 
 ```
 src/components/
-├── ui/                            # shadcn/ui temel bileşenleri
+├── ui/                            # shadcn/ui temel bileşenleri: badge, button, card, dialog,
+│                                  #   input, select, separator, sheet, skeleton, sonner, tabs
+├── providers/
+│   └── session-provider.tsx       # "use client" — next-auth/react SessionProvider'ı sarar
 ├── Navbar.tsx, Footer.tsx         # Sayfa düzeni
 ├── HeroSlider.tsx                 # Ana sayfa kahraman görseli — kategoriye göre gruplu
 ├── ItemCard.tsx, ItemListRow.tsx  # Item kart/satır görünümü
