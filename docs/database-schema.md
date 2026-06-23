@@ -1,329 +1,230 @@
-# Database Schema Design — Free Serie Tracker
+# Database Schema Design — Generic SaaS Starter
 
-This document describes the structured database schema used by **Free Serie Tracker** to store user accounts, authentication sessions, tracking lists, personal ratings, and the metadata cache.
+This document describes the database schema used by **Generic SaaS Starter** to store user accounts, authentication sessions, tracked items, personal tracking state, ratings, and notifications.
 
-The database uses a simplified, normalized relational structure optimized for Next.js App Router and serverless deployment targets (like Neon PostgreSQL).
+The schema is intentionally small and generic — `Item` carries no domain-specific fields (no episode counts, no platform availability, nothing TV/anime/manga-specific). Adapt `ItemCategory`'s three placeholder values (`TYPE_A`/`TYPE_B`/`TYPE_C`) to your real domain's categories when you build on this starter.
 
 ---
 
 ## Entity Relationship Diagram
 
-The following Mermaid ER Diagram models the tables and relationships defined in the Prisma schema:
-
 ```mermaid
 erDiagram
     User ||--o{ Account : has
     User ||--o{ Session : has
-    User ||--o{ LibraryItem : tracks
-    User ||--o{ UserRating : rates
+    User ||--o{ UserItem : tracks
+    User ||--o{ Rating : rates
+    User ||--o{ Notification : receives
 
-    Series ||--o{ LibraryItem : references
-    Series ||--o{ UserRating : references
+    Item ||--o{ UserItem : "tracked via"
+    Item ||--o{ Rating : "rated via"
+    Item ||--o{ Notification : triggers
 
     User {
-        String id PK
-        String name
-        String username UK
-        String email UK
-        DateTime emailVerified
-        String image
-        String passwordHash
-        DateTime createdAt
-        DateTime updatedAt
+        string id PK
+        string name
+        string username UK
+        string email UK
+        datetime emailVerified
+        string image
+        string passwordHash "null for OAuth-only users"
+        boolean notificationsEnabled
+        datetime lastNotificationCheckAt
+        datetime createdAt
+        datetime updatedAt
     }
 
     Account {
-        String userId FK
-        String type
-        String provider
-        String providerAccountId
-        String refresh_token
-        String access_token
-        Int expires_at
-        String token_type
-        String scope
-        String id_token
-        String session_state
-        DateTime createdAt
-        DateTime updatedAt
+        string provider PK
+        string providerAccountId PK
+        string userId FK
+        string type
+        string refresh_token
+        string access_token
     }
 
     Session {
-        String sessionToken UK
-        String userId FK
-        DateTime expires
-        DateTime createdAt
-        DateTime updatedAt
+        string sessionToken UK
+        string userId FK
+        datetime expires
     }
 
     VerificationToken {
-        String identifier
-        String token
-        DateTime expires
+        string identifier PK
+        string token PK
+        datetime expires
     }
 
-    Series {
-        String id PK
-        String externalId UK
-        String source UK
-        ContentType contentType
-        ContentStatus status
-        String title
-        String titleOriginal
-        String titleRomaji
-        String synopsis
-        String coverImage
-        String bannerImage
-        String[] genres
-        String[] tags
-        Int year
-        String season
-        Int totalEpisodes
-        Int totalChapters
-        Int totalVolumes
-        Float ratingExternal
-        Float ratingTmdb
-        Float ratingAniList
-        Float ratingImdb
-        Float ratingMal
-        Json platforms
-        DateTime cachedAt
-        DateTime updatedAt
+    Item {
+        string id PK
+        string externalId
+        string source "always example-source in this starter"
+        enum category "TYPE_A | TYPE_B | TYPE_C"
+        enum status "ONGOING | COMPLETED | HIATUS | CANCELLED | UPCOMING"
+        string title
+        string description
+        string coverImage
+        int totalUnits
+        float ratingExternal
     }
 
-    LibraryItem {
-        String id PK
-        String userId FK
-        String seriesId FK
-        LibraryStatus status
-        Int currentSeason
-        Int currentEpisode
-        Int currentChapter
-        Int currentVolume
-        DateTime startedAt
-        DateTime completedAt
-        DateTime createdAt
-        DateTime updatedAt
+    UserItem {
+        string id PK
+        string userId FK
+        string itemId FK
+        enum status "ACTIVE | PLANNED | COMPLETED | PAUSED | DROPPED"
+        boolean isFavorite
+        int progress "single generic counter, not episode/chapter-specific"
+        string notes
     }
 
-    UserRating {
-        String id PK
-        String userId FK
-        String seriesId FK
-        Int score
-        String review
-        DateTime createdAt
-        DateTime updatedAt
+    Rating {
+        string id PK
+        string userId FK
+        string itemId FK
+        int score "1-10"
+        string review
+    }
+
+    Notification {
+        string id PK
+        string userId FK
+        string itemId FK
+        string message
+        boolean isRead
     }
 ```
 
 ---
 
-## Prisma Schema
+## Models
+
+### Auth models (Auth.js v5 required schema)
+
+`User`, `Account`, `Session`, `VerificationToken` follow the standard Auth.js Prisma adapter schema, with two app-specific additions on `User`: `username` (unique, set via a post-signup flow before the rest of the app is accessible) and `notificationsEnabled`/`lastNotificationCheckAt` (drive the in-app notification check's server-side once-per-hour throttle).
+
+### `Item` — the generic tracked entity
 
 ```prisma
-// prisma/schema.prisma
-
-generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+enum ItemCategory {
+  TYPE_A
+  TYPE_B
+  TYPE_C
 }
 
-datasource db {
-  provider = "postgresql"
+enum ItemStatus {
+  ONGOING
+  COMPLETED
+  HIATUS
+  CANCELLED
+  UPCOMING
 }
 
-// ─────────────────────────────────────────────────
-// Auth Models (Auth.js v5 required schema)
-// ─────────────────────────────────────────────────
+model Item {
+  id             String       @id @default(cuid())
+  externalId     String
+  source         String       // always "example-source" in this starter
+  category       ItemCategory
+  status         ItemStatus   @default(ONGOING)
+  title          String
+  description    String?
+  coverImage     String?
+  totalUnits     Int?
+  ratingExternal Float?
+  cachedAt       DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  username      String?   @unique
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?   // null for OAuth-only users
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts      Account[]
-  sessions      Session[]
-  libraryItems  LibraryItem[]
-  userRatings   UserRating[]
-
-  @@index([email])
-}
-
-model Account {
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([provider, providerAccountId])
-  @@index([userId])
-}
-
-model Session {
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
-
-  @@id([identifier, token])
-}
-
-// ─────────────────────────────────────────────────
-// Content Types
-// ─────────────────────────────────────────────────
-
-enum ContentType {
-  TV_SERIES
-  ANIME
-  MANGA
-  MANHWA
-  LIGHT_NOVEL
-  WEBTOON
-}
-
-enum ContentStatus {
-  ONGOING      // Currently airing/publishing
-  COMPLETED    // Finished
-  HIATUS       // On break
-  CANCELLED    // Cancelled/discontinued
-  UPCOMING     // Not yet started
-}
-
-// ─────────────────────────────────────────────────
-// Series (cached metadata from external APIs)
-// ─────────────────────────────────────────────────
-
-model Series {
-  id              String        @id @default(cuid())
-  externalId      String        // ID from source API (TMDB id, AniList id, etc.)
-  source          String        // "tmdb" | "anilist" | "mangadex" | "jikan"
-  contentType     ContentType
-  status          ContentStatus @default(ONGOING)
-
-  // Core info
-  title           String
-  titleOriginal   String?
-  titleRomaji     String?
-  synopsis        String?
-  coverImage      String?       // URL
-  bannerImage     String?       // URL
-  genres          String[]      // ["Action", "Drama", ...]
-  tags            String[]      // ["Based on Manga", "School", ...]
-  year            Int?
-  season          String?       // "Spring 2024" for anime
-
-  // Episode / Chapter info
-  totalEpisodes   Int?          // null = unknown/ongoing
-  totalChapters   Int?          // for manga-type
-  totalVolumes    Int?          // for light novels
-
-  // External ratings (normalized 0.0 - 10.0)
-  ratingExternal  Float?        // avg of available sources
-  ratingTmdb      Float?
-  ratingAniList   Float?
-  ratingImdb      Float?
-  ratingMal       Float?
-
-  // Platform availability (stored as JSON)
-  // [{ platformId, platformName, url, region, subscriptionType }]
-  platforms       Json          @default("[]")
-
-  cachedAt        DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  libraryItems    LibraryItem[]
-  userRatings     UserRating[]
+  userItems     UserItem[]
+  ratings       Rating[]
+  notifications Notification[]
 
   @@unique([externalId, source])
-  @@index([contentType])
+  @@index([category])
   @@index([title])
-  @@index([cachedAt])
 }
+```
 
-// ─────────────────────────────────────────────────
-// Library (User's personal tracking)
-// ─────────────────────────────────────────────────
+`externalId` + `source` form a compound unique key, the pattern you'd use to upsert items fetched from (or re-synced against) a real external API — `source` is hardcoded `"example-source"` today since that's the only data source this starter ships with.
 
-enum LibraryStatus {
-  WATCHING     // Currently watching/reading
-  PLAN_TO_WATCH
+### `UserItem` — personal tracking state
+
+```prisma
+enum TrackingStatus {
+  ACTIVE
+  PLANNED
   COMPLETED
-  ON_HOLD
+  PAUSED
   DROPPED
 }
 
-model LibraryItem {
-  id        String        @id @default(cuid())
-  userId    String
-  seriesId  String
-  status    LibraryStatus @default(PLAN_TO_WATCH)
+model UserItem {
+  id         String         @id @default(cuid())
+  userId     String
+  itemId     String
+  status     TrackingStatus @default(PLANNED)
+  isFavorite Boolean        @default(false)
+  progress   Int?
+  notes      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
-  // Progress tracking
-  currentSeason   Int?   // For TV series
-  currentEpisode  Int?   // S2E5 → season=2, episode=5
-  currentChapter  Int?   // Ch.45
-  currentVolume   Int?   // Vol.3
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  startedAt   DateTime?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, seriesId])
+  @@unique([userId, itemId])
   @@index([userId])
   @@index([userId, status])
 }
+```
 
-// ─────────────────────────────────────────────────
-// User Ratings (personal score 1-10)
-// ─────────────────────────────────────────────────
+`progress` is a single generic `Int?` — not separate episode/chapter/season/volume counters. The UI always presents it as "+1 unit (N)"; rename the concept of a "unit" when adapting this to a real domain (pages read, workouts completed, lessons finished, etc.).
 
-model UserRating {
+### `Rating` — personal score
+
+```prisma
+model Rating {
   id        String   @id @default(cuid())
   userId    String
-  seriesId  String
+  itemId    String
   score     Int      // 1-10
-  review    String?  // Optional written review
+  review    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, seriesId])
+  @@unique([userId, itemId])
   @@index([userId])
-  @@index([seriesId])
+  @@index([itemId])
 }
 ```
+
+One rating per user per item (the unique constraint), upserted via `PUT /api/items/[id]/rating` — see [api-contracts.md](api-contracts.md).
+
+### `Notification` — item-update alerts
+
+```prisma
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+```
+
+Created by `checkForItemUpdates()` (`src/lib/notifications.ts`) whenever an `Item`'s `totalUnits` increases since the last check — see [architecture.md](architecture.md) for how the check is triggered.
+
+---
+
+## Deployment Target
+
+PostgreSQL via [Neon](https://neon.tech) (serverless, free tier). The schema uses a single `datasource db { provider = "postgresql" }` block — no Cloudflare-specific schema concerns, just the standard Prisma + Neon serverless driver setup (`@prisma/adapter-neon` in production, `@prisma/adapter-pg` for local Docker Postgres — see `src/lib/db/prisma.ts`).
