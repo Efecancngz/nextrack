@@ -1,686 +1,170 @@
-# API Contracts — Free Serie Tracker
+# API Contracts — Generic SaaS Starter
 
 ## Base URL
 
 ```
-Production: https://free-serie-tracker.pages.dev/api
 Development: http://localhost:3000/api
 ```
 
 ## Response Format
 
-All endpoints return:
+Every endpoint returns this exact shape (`src/types/common.ts`):
 
 ```typescript
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: {
-    code: string;    // e.g., "UNAUTHORIZED", "NOT_FOUND", "VALIDATION_ERROR"
-    message: string; // Human-readable message
-  };
-  meta?: {
-    page: number;
-    pageSize: number;
-    totalPages: number;
-    totalItems: number;
-  };
+  error?: string;
+  message?: string;
 }
 ```
 
-## Authentication
+There is no nested `error.code`/`error.message` object and no top-level `meta` — error responses are a flat string, success responses carry `data` directly. No endpoint currently paginates (`/api/items` returns all matches in one call); `PaginatedResponse<T>`/`PaginationMeta` exist in `src/types/common.ts` for future use but aren't wired into any route yet.
 
-- **Method**: JWT via Auth.js HttpOnly cookies
-- **Protected routes**: All `/api/library/*` and `/api/ratings/*` endpoints
-- **Public routes**: `/api/series/*`, `/api/search/*`, `/api/auth/*`
+All error responses use the status code attached to the `AppError` that was thrown (`src/lib/utils/app-error.ts`) — `404` not-found, `401` unauthorized, `409` conflict, `422` validation, `429` rate-limited, `500` unexpected.
+
+Every route below is wrapped in `compose(withErrorHandler, withRateLimit)(handler)` unless noted — a uniform 60 requests/60 seconds per IP.
 
 ---
 
-## Auth Endpoints
+## Auth
 
-### POST `/api/auth/register`
+### `POST /api/auth/register`
+Create a new email/password user. Does not sign the user in — the client redirects to `/auth/signin` afterward.
 
-Create a new account with email/password.
-
+**Body** (`registerSchema`):
 ```typescript
-// Request
-{
-  email: string;      // valid email
-  password: string;   // min 8 chars, 1 uppercase, 1 number
-  name: string;       // min 2 chars
-}
+{ name: string; email: string; password: string /* min 8 chars */ }
+```
 
-// Response 201
+**Response `201`:** `{ success: true, data: { id, email, name } }`
+**Errors:** `422` validation failure, `409` email already registered.
+
+### `POST/GET /api/auth/[...nextauth]`
+Auth.js catch-all handler (sign-in, sign-out, session, callback routes). Not a custom contract — see `src/lib/auth/config.ts`.
+
+### `POST /api/user/username`
+Set the current user's username (required before the rest of the app is accessible — enforced by `src/middleware.ts`). Auth via `getCurrentUser()`, not `requireAuth()` — throws its own `AppError.unauthorized()` with a custom message.
+
+**Body:** `{ username: string }` — lowercased, trimmed, validated against `/^[a-z0-9_]+$/`, 3-20 characters.
+
+**Response `200`:** `{ success: true, data: { username } }`
+**Errors:** `400` invalid format/length, `401` not signed in, `409` username taken by another user.
+
+---
+
+## Items
+
+### `GET /api/items`
+List/search/filter items. No auth required.
+
+**Query params (all optional):** `q` (title contains, case-insensitive), `category` (`itemCategoryEnum`: `TYPE_A`/`TYPE_B`/`TYPE_C`), `status` (`itemStatusEnum`: `ONGOING`/`COMPLETED`/`HIATUS`/`CANCELLED`/`UPCOMING`).
+
+**Response `200`:** `{ success: true, data: Item[] }` (full Prisma `Item` rows, ordered by `title` ascending).
+**Errors:** `400` invalid `category` or `status` value.
+
+### `GET /api/items/suggest`
+Autocomplete suggestions. No auth required.
+
+**Query params:** `q` (required for results — empty/missing `q` returns `{ success: true, data: [] }`, not an error).
+
+**Response `200`:** `{ success: true, data: Item[] }` — title-match, capped at 8 results.
+
+### `GET /api/items/trending`
+No params. No auth required.
+
+**Response `200`:** `{ success: true, data: Item[] }` — `status: "ONGOING"` items, ordered by `updatedAt` descending, capped at 8.
+
+### `GET /api/items/[id]`
+**Response `200`:** `{ success: true, data: Item }`
+**Errors:** `404` item not found.
+
+### `PUT /api/items/[id]/rating`
+Create or update the current user's rating for an item. Auth required (`requireAuth()`).
+
+**Body** (`rateItemSchema`):
+```typescript
+{ score: number /* int, 1-10 */; review?: string /* max 2000 chars */ }
+```
+
+**Response `200`:** `{ success: true, data: Rating }` — upserted on the `(userId, itemId)` unique constraint.
+**Errors:** `404` item not found, `422` validation failure, `401` not signed in.
+
+---
+
+## User Items (personal tracking)
+
+### `GET /api/user-items`
+The current user's tracking list. Auth required.
+
+**Query params:** `status` (optional, `trackingStatusEnum`: `ACTIVE`/`PLANNED`/`COMPLETED`/`PAUSED`/`DROPPED`).
+
+**Response `200`:** `{ success: true, data: UserItem[] }` — each row includes its related `item`, ordered by `updatedAt` descending.
+**Errors:** `400` invalid `status` value, `401` not signed in.
+
+### `POST /api/user-items`
+Add an item to the current user's tracking list. Auth required.
+
+**Body** (`addToTrackingSchema`):
+```typescript
+{ itemId: string; status?: TrackingStatus /* default "PLANNED" */ }
+```
+
+**Response `201`:** `{ success: true, data: UserItem }`
+**Errors:** `404` item not found, `409` already tracked (unique `(userId, itemId)` constraint), `422` validation failure.
+
+### `PATCH /api/user-items/[id]`
+Updates exactly one of status, favorite, or progress per call — the body is tried against three schemas in order (status → favorite → progress); whichever parses first wins. Auth required; the entry must belong to the current user (cross-user access returns `404`, not `403`, deliberately, so existence isn't leaked).
+
+**Body — one of:**
+```typescript
+{ status: TrackingStatus }                              // updateTrackingStatusSchema
+{ isFavorite: boolean }                                 // updateTrackingFavoriteSchema
+{ progress: number /* int >= 0 */; notes?: string }      // updateTrackingProgressSchema
+```
+
+**Response `200`:** `{ success: true, data: UserItem }`
+**Errors:** `404` entry not found or not owned by caller, `422` body matches none of the three schemas.
+
+### `DELETE /api/user-items/[id]`
+Remove a tracking entry. Auth required, same ownership check as `PATCH`.
+
+**Response `200`:** `{ success: true, data: { id } }`
+**Errors:** `404` entry not found or not owned by caller.
+
+---
+
+## Notifications
+
+### `GET /api/notifications`
+Auth required.
+
+**Response `200`:**
+```typescript
 {
   success: true,
   data: {
-    id: string;
-    email: string;
-    name: string;
+    notifications: Notification[];  // newest 20, each with its related `item`
+    unreadCount: number;
+    notificationsEnabled: boolean;
   }
 }
 ```
 
-### POST `/api/auth/signin`
+### `POST /api/notifications/check`
+Triggers `checkForItemUpdates(userId)` (`src/lib/notifications.ts`) — compares each tracked item's `totalUnits` against its last-known value and creates a `Notification` on any increase. Throttled server-side to once/hour/user via `User.lastNotificationCheckAt`. Auth required.
 
-Sign in with credentials or OAuth (handled by Auth.js).
+**Response `200`:** `{ success: true, data: <checkForItemUpdates() result> }`
 
-### GET `/api/auth/session`
+### `PATCH /api/notifications/mark-read`
+Marks every unread notification for the current user as read. Auth required, no body.
 
-Get current session (handled by Auth.js).
+**Response `200`:** `{ success: true, data: { updated: number } }`
 
----
+### `PATCH /api/notifications/settings`
+Auth required.
 
-## Series Endpoints
+**Body** (`updateNotificationSettingsSchema`): `{ notificationsEnabled: boolean }`
 
-### GET `/api/series/search`
-
-Search across all content types.
-
-```typescript
-// Query Parameters
-{
-  q: string;                    // Search query
-  type?: ContentType;           // "TV_SERIES" | "ANIME" | "MANGA" | "MANHWA" | "LIGHT_NOVEL" | "WEBTOON"
-  page?: number;                // Default: 1
-  pageSize?: number;            // Default: 20, max: 50
-}
-
-// Response 200
-{
-  success: true,
-  data: SeriesCard[],
-  meta: { page, pageSize, totalPages, totalItems }
-}
-
-interface SeriesCard {
-  id: string;
-  externalId: string;
-  externalSource: string;
-  contentType: ContentType;
-  title: string;
-  posterUrl: string | null;
-  status: SeriesStatus;
-  rating: number | null;        // Best available external rating (0-10)
-  ratingSource: string;         // "tmdb" | "anilist" | "mal" | "imdb"
-  genres: string[];
-  year: number | null;
-}
-```
-
-### GET `/api/series/trending`
-
-Get trending series by content type.
-
-```typescript
-// Query Parameters
-{
-  type?: ContentType;           // Filter by type, omit for all
-  page?: number;
-  pageSize?: number;
-}
-
-// Response 200: Same format as search
-```
-
-### GET `/api/series/[id]`
-
-Get detailed series information.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: {
-    id: string;
-    externalId: string;
-    externalSource: string;
-    contentType: ContentType;
-    title: string;
-    originalTitle: string | null;
-    description: string | null;
-    posterUrl: string | null;
-    bannerUrl: string | null;
-    status: SeriesStatus;
-    totalEpisodes: number | null;
-    totalChapters: number | null;
-    totalSeasons: number | null;
-    totalVolumes: number | null;
-    startDate: string | null;    // ISO date
-    endDate: string | null;
-    genres: string[];
-    platforms: Platform[];
-    ratings: ExternalRatingInfo[];
-    averageUserRating: number | null;  // Average from our users
-    userRatingCount: number;
-  }
-}
-
-interface Platform {
-  name: string;          // "Netflix", "Crunchyroll"
-  logo: string | null;   // URL to platform logo
-  url: string | null;    // Deep link
-  region: string;        // "US", "TR"
-}
-
-interface ExternalRatingInfo {
-  source: string;        // "tmdb", "imdb", "anilist", "mal"
-  score: number;         // Normalized 0-10
-  voteCount: number;
-}
-```
-
-### GET `/api/series/[id]/similar`
-
-Get similar series recommendations.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: SeriesCard[]     // Max 12 items
-}
-```
-
----
-
-## Explore / Filter Endpoints
-
-### POST `/api/explore/ai-search` (🔒 Authenticated)
-
-AI-powered semantic search and recommendations using the 3-way security blend. Capped at 10 requests per user per day.
-
-```typescript
-// Request Body
-{
-  genres?: string[];            // Optional genres list
-  contentType?: ContentType;   // Optional content type filter
-  platforms?: string[];         // Optional watch platforms list
-  hint?: string;                // AI context hint (Max 80 chars, e.g. "anti-hero")
-}
-
-// Response 200
-{
-  success: true,
-  data: {
-    explanation: string;        // AI-generated reasoning text
-    results: SeriesCard[];      // SeriesCard results list ranked by vector similarity
-  }
-}
-```
-
-### GET `/api/explore`
-
-Browse with advanced filters.
-
-```typescript
-// Query Parameters
-{
-  type?: ContentType;
-  genre?: string;               // Genre name
-  status?: SeriesStatus;
-  platform?: string;            // Platform name
-  sortBy?: "trending" | "rating" | "newest" | "title";
-  sortOrder?: "asc" | "desc";
-  page?: number;
-  pageSize?: number;
-}
-
-// Response 200: Same format as search
-```
-
-### GET `/api/explore/genres`
-
-Get available genres for a content type.
-
-```typescript
-// Query Parameters
-{
-  type?: ContentType;
-}
-
-// Response 200
-{
-  success: true,
-  data: string[]  // ["Action", "Romance", "Sci-Fi", ...]
-}
-```
-
-### GET `/api/explore/platforms`
-
-Get available platforms.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: {
-    name: string;
-    logo: string;
-    contentTypes: ContentType[];  // Which types this platform has
-  }[]
-}
-```
-
----
-
-## Library Endpoints (🔒 Authenticated)
-
-### GET `/api/library`
-
-Get user's library.
-
-```typescript
-// Query Parameters
-{
-  status?: LibraryStatus;       // Filter by status
-  type?: ContentType;           // Filter by content type
-  sortBy?: "addedAt" | "updatedAt" | "title" | "rating";
-  page?: number;
-  pageSize?: number;
-}
-
-// Response 200
-{
-  success: true,
-  data: LibraryEntry[],
-  meta: { page, pageSize, totalPages, totalItems }
-}
-
-interface LibraryEntry {
-  id: string;
-  series: SeriesCard;
-  status: LibraryStatus;
-  isFavorite: boolean;
-  waitLanguage: string | null;      // Preferred language to wait for releases (e.g. "tr")
-  customSearchKeyword: string | null; // Custom preferred site search keyword (e.g. "tranimeizle")
-  progress: {
-    currentEpisode: number;
-    currentSeason: number;
-    currentChapter: number;
-    currentVolume: number;
-  } | null;
-  userRating: number | null;
-  addedAt: string;
-  updatedAt: string;
-}
-```
-
-### POST `/api/library`
-
-Add series to library.
-
-```typescript
-// Request
-{
-  seriesId: string;             // Internal series ID (or externalId + source)
-  externalId?: string;          // If series doesn't exist in DB yet
-  externalSource?: string;
-  status?: LibraryStatus;       // Default: "PLAN_TO_WATCH"
-  waitLanguage?: string | null;
-  customSearchKeyword?: string | null;
-}
-
-// Response 201
-{
-  success: true,
-  data: LibraryEntry
-}
-```
-
-### PATCH `/api/library/[id]`
-
-Update library entry status.
-
-```typescript
-// Request
-{
-  status?: LibraryStatus;
-  isFavorite?: boolean;
-  waitLanguage?: string | null;
-  customSearchKeyword?: string | null;
-}
-
-// Response 200
-{
-  success: true,
-  data: LibraryEntry
-}
-```
-
-### DELETE `/api/library/[id]`
-
-Remove series from library.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: { id: string }
-}
-```
-
-### PATCH `/api/library/[id]/progress`
-
-Update episode/chapter progress.
-
-```typescript
-// Request
-{
-  currentEpisode?: number;
-  currentSeason?: number;
-  currentChapter?: number;
-  currentVolume?: number;
-}
-
-// Response 200
-{
-  success: true,
-  data: {
-    currentEpisode: number;
-    currentSeason: number;
-    currentChapter: number;
-    currentVolume: number;
-    lastUpdated: string;
-  }
-}
-```
-
----
-
-## Rating Endpoints (🔒 Authenticated)
-
-### POST `/api/ratings`
-
-Rate a series.
-
-```typescript
-// Request
-{
-  seriesId: string;
-  score: number;          // 1-10
-  review?: string;        // Optional text review
-}
-
-// Response 201
-{
-  success: true,
-  data: {
-    id: string;
-    score: number;
-    review: string | null;
-    createdAt: string;
-  }
-}
-```
-
-### PATCH `/api/ratings/[id]`
-
-Update a rating.
-
-```typescript
-// Request
-{
-  score?: number;
-  review?: string;
-}
-
-// Response 200: Same format as POST
-```
-
-### DELETE `/api/ratings/[id]`
-
-Delete a rating.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: { id: string }
-}
-```
-
----
-
-## Notes Endpoints (🔒 Authenticated)
-
-### GET `/api/series/[id]/note`
-
-Retrieve the current user's private note and custom link for a specific series.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: {
-    id: string;
-    seriesId: string;
-    content: string;
-    customUrl: string | null;
-    createdAt: string;
-    updatedAt: string;
-  } | null
-}
-```
-
-### PUT `/api/series/[id]/note`
-
-Create or update the current user's private note and custom link for a specific series.
-
-```typescript
-// Request
-{
-  content: string;           // Note text content
-  customUrl?: string | null; // Optional custom/external URL (e.g., fan translation link)
-}
-
-// Response 200 (if updated) or 201 (if created)
-{
-  success: true,
-  data: {
-    id: string;
-    seriesId: string;
-    content: string;
-    customUrl: string | null;
-    createdAt: string;
-    updatedAt: string;
-  }
-}
-```
-
-### DELETE `/api/series/[id]/note`
-
-Delete the current user's private note and custom link for a specific series.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: { id: string }
-}
-```
-
----
-
-## Language Tracking Endpoints (🔒 Authenticated)
-
-### GET `/api/series/[id]/languages`
-
-Get detailed release tracking statistics of episodes or chapters per platform and language.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: EpisodeLanguageInfo[]
-}
-
-interface EpisodeLanguageInfo {
-  id: string;
-  seriesId: string;
-  episode: number | null;
-  chapter: number | null;
-  season: number | null;
-  platform: string;           // "crunchyroll", "mangadex", etc.
-  language: string;           // "tr", "en", etc.
-  availableAt: string | null; // Timestamp when released at source
-  detectedAt: string;         // Timestamp when detected by our sync cron
-}
-```
-
----
-
-## Social Feed Endpoints (🔒 Authenticated)
-
-### GET `/api/social/feed`
-
-Get recent updates from friends (series watched, ratings given, reviews written).
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: ActivityItem[]
-}
-
-interface ActivityItem {
-  id: string;
-  userId: string;
-  userName: string;
-  userImage: string | null;
-  type: "WATCH" | "READ" | "RATING" | "REVIEW";
-  seriesId: string;
-  seriesTitle: string;
-  detail: string;             // e.g. "watched Episode 1115", "rated 10/10"
-  createdAt: string;          // ISO timestamp
-}
-```
-
-### POST `/api/social/follow/[userId]`
-
-Follow a user.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: { success: true }
-}
-```
-
-### DELETE `/api/social/follow/[userId]`
-
-Unfollow a user.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: { success: true }
-}
-```
-
----
-
-## Gamification & Badges Endpoints
-
-### GET `/api/users/[id]/badges`
-
-Retrieve badges earned by a user.
-
-```typescript
-// Response 200
-{
-  success: true,
-  data: UserBadgeInfo[]
-}
-
-interface UserBadgeInfo {
-  badgeId: string;
-  name: string;               // e.g. "Otaku"
-  description: string;        // e.g. "Tracked over 50 anime series"
-  icon: string;               // badge icon class or URL
-  earnedAt: string;           // ISO timestamp
-}
-```
-
----
-
-## Error Codes
-
-| Code | HTTP Status | Description |
-|---|---|---|
-| `UNAUTHORIZED` | 401 | Not authenticated |
-| `FORBIDDEN` | 403 | Not authorized for this action |
-| `NOT_FOUND` | 404 | Resource not found |
-| `VALIDATION_ERROR` | 400 | Input validation failed |
-| `CONFLICT` | 409 | Resource already exists (duplicate library entry) |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `EXTERNAL_API_ERROR` | 502 | External API (TMDB/AniList) failed |
-| `INTERNAL_ERROR` | 500 | Unexpected server error |
-
-## Validation Rules (Zod)
-
-```typescript
-// Auth
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/),
-  name: z.string().min(2).max(50),
-});
-
-// Library
-const addToLibrarySchema = z.object({
-  seriesId: z.string().optional(),
-  externalId: z.string().optional(),
-  externalSource: z.string().optional(),
-  status: z.nativeEnum(LibraryStatus).default("PLAN_TO_WATCH"),
-  waitLanguage: z.string().max(10).optional().nullable(),
-  customSearchKeyword: z.string().max(100).optional().nullable(),
-});
-
-const updateLibrarySchema = z.object({
-  status: z.nativeEnum(LibraryStatus).optional(),
-  isFavorite: z.boolean().optional(),
-  waitLanguage: z.string().max(10).optional().nullable(),
-  customSearchKeyword: z.string().max(100).optional().nullable(),
-});
-
-// Notes
-const updateNoteSchema = z.object({
-  content: z.string().max(10000),
-  customUrl: z.string().url().max(2000).optional().nullable(),
-});
-
-// Progress
-const updateProgressSchema = z.object({
-  currentEpisode: z.number().int().min(0).optional(),
-  currentSeason: z.number().int().min(1).optional(),
-  currentChapter: z.number().int().min(0).optional(),
-  currentVolume: z.number().int().min(1).optional(),
-});
-
-// Rating
-const ratingSchema = z.object({
-  seriesId: z.string(),
-  score: z.number().int().min(1).max(10),
-  review: z.string().max(2000).optional(),
-});
-
-// Search
-const searchSchema = z.object({
-  q: z.string().min(1).max(100),
-  type: z.nativeEnum(ContentType).optional(),
-  page: z.number().int().min(1).default(1),
-  pageSize: z.number().int().min(1).max(50).default(20),
-});
-
-// AI Search
-const aiSearchSchema = z.object({
-  genres: z.array(z.string()).optional(),
-  contentType: z.nativeEnum(ContentType).optional(),
-  platforms: z.array(z.string()).optional(),
-  hint: z.string().max(80).optional(),
-});
-```,StartLine:589,TargetContent:
-```
+**Response `200`:** `{ success: true, data: { notificationsEnabled: boolean } }`
+**Errors:** `422` validation failure.
