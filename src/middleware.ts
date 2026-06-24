@@ -6,9 +6,9 @@ export default edgeAuth((req) => {
   const hasUsername = !!req.auth?.user?.username;
   const { pathname } = req.nextUrl;
 
-  // 1. If not logged in, only protect /library paths
+  // 1. If not logged in, only protect /my-items paths
   if (!isLoggedIn) {
-    if (pathname.startsWith("/library")) {
+    if (pathname.startsWith("/my-items")) {
       const signInUrl = new URL("/auth/signin", req.nextUrl.origin);
       signInUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(signInUrl);

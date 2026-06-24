@@ -7,10 +7,8 @@ import { useSession, signOut } from "next-auth/react";
 import NotificationBell from "./NotificationBell";
 
 const NAV_LINKS = [
-  { href: "/explore", label: "Browse" },
-  { href: "/library", label: "My List" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/settings", label: "Settings" },
+  { href: "/browse", label: "Browse" },
+  { href: "/my-items", label: "My Items" },
 ] as const;
 
 export default function Navbar() {

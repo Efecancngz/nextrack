@@ -1,4 +1,4 @@
-# System Architecture — Free Serie Tracker
+# System Architecture — Generic SaaS Starter
 
 ## High-Level Architecture
 
@@ -10,14 +10,13 @@ graph TB
         CC["Client Components"]
     end
 
-    subgraph Vercel["Vercel Platform"]
+    subgraph CFW["Cloudflare Workers (via OpenNext)"]
         subgraph NextJS["Next.js App"]
             AR["App Router"]
             API["API Routes<br/>/api/*"]
-            MW["Middleware<br/>(Auth + Rate Limit)"]
-            ISR["ISR Cache"]
+            MW["HOF Middleware Chain<br/>(Rate Limit + Error Handler)"]
         end
-        
+
         subgraph Auth["Auth.js"]
             GO["Google OAuth"]
             EP["Email/Password"]
@@ -25,19 +24,16 @@ graph TB
         end
     end
 
-    subgraph External["External APIs"]
-        TMDB["TMDB API<br/>(TV Series)"]
-        AL["AniList GraphQL<br/>(Anime/Manga/LN)"]
-        MD["MangaDex API<br/>(Manga/Manhwa)"]
-        JK["Jikan API<br/>(MAL backup)"]
+    subgraph ExampleSource["Example Data Source"]
+        ES["src/lib/api/example-source.ts<br/>(in-memory placeholder, seeded into DB)"]
     end
 
     subgraph Database["Neon PostgreSQL"]
-        Users["Users"]
-        Library["Library/Lists"]
-        Progress["Episode Progress"]
-        Ratings["User Ratings"]
-        Cache["API Cache"]
+        Users["User / Account / Session"]
+        Items["Item"]
+        UserItems["UserItem (tracking)"]
+        Ratings["Rating"]
+        Notifications["Notification"]
     end
 
     UI --> AR
@@ -46,148 +42,108 @@ graph TB
     AR --> API
     API --> MW
     MW --> Auth
-    API --> ISR
-    ISR --> External
     API --> Database
+    ES -.->|"seeded once via prisma/seed.ts"| Items
 
     style Client fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
-    style Vercel fill:#0a0a1a,stroke:#16213e,color:#e0e0e0
-    style External fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
+    style CFW fill:#0a0a1a,stroke:#16213e,color:#e0e0e0
+    style ExampleSource fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
     style Database fill:#1a1a2e,stroke:#16213e,color:#e0e0e0
 ```
 
+There is no service/repository/provider layer. Every API route queries Prisma directly — see [project-structure.md](project-structure.md) for the actual file layout and [design-patterns.md](design-patterns.md) for why this is a deliberate choice at this project's size, not an oversight.
+
 ## Data Flow
 
-### 1. Series Discovery (Home/Explore)
+### 1. Browse / Search
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant NextJS as Next.js (ISR)
-    participant Cache as ISR Cache
-    participant TMDB
-    participant AniList
+    participant Browse as /browse page (client)
+    participant API as GET /api/items
+    participant DB as Neon PostgreSQL
 
-    User->>NextJS: GET /explore?type=anime
-    NextJS->>Cache: Check cache (revalidate: 3600s)
-    
-    alt Cache HIT
-        Cache-->>NextJS: Return cached data
-    else Cache MISS
-        NextJS->>AniList: GraphQL query (trending anime)
-        AniList-->>NextJS: Anime data + ratings
-        NextJS->>Cache: Store in cache
-    end
-    
-    NextJS-->>User: Render page with data
+    User->>Browse: types a search query
+    Browse->>Browse: debounce (350ms)
+    Browse->>API: GET /api/items?q=&category=&status=
+    API->>DB: prisma.item.findMany({ where: {...} })
+    DB-->>API: matching Item rows
+    API-->>Browse: { success: true, data: Item[] }
+    Browse-->>User: render ItemCard/ItemListRow grid
 ```
 
-### 2. Add to Library & Track Progress
+No caching layer sits in front of this query — every request hits Postgres directly. At this project's scale (a handful of example rows) that's the right tradeoff; if you adapt this starter to a larger dataset, this is the place to add a cache.
+
+### 2. Track an Item & Update Progress
 
 ```mermaid
 sequenceDiagram
     participant User
     participant API as API Route
-    participant Auth as Auth.js
+    participant Auth as Auth.js (requireAuth)
     participant DB as Neon PostgreSQL
 
-    User->>API: POST /api/library/add
-    API->>Auth: Verify JWT
-    Auth-->>API: User authenticated
-    API->>DB: INSERT into user_library
-    DB-->>API: Success
-    API-->>User: { success: true }
+    User->>API: POST /api/user-items { itemId, status }
+    API->>Auth: requireAuth()
+    Auth-->>API: session user
+    API->>DB: prisma.userItem.create(...)
+    DB-->>API: created UserItem
+    API-->>User: { success: true, data: UserItem }
 
-    User->>API: PATCH /api/library/progress
-    API->>Auth: Verify JWT
-    API->>DB: UPDATE progress (S2E5)
-    DB-->>API: Updated
-    API-->>User: { success: true, progress: "S2E5" }
+    User->>API: PATCH /api/user-items/:id { progress }
+    API->>Auth: requireAuth()
+    API->>DB: confirm ownership, then prisma.userItem.update(...)
+    DB-->>API: updated UserItem
+    API-->>User: { success: true, data: UserItem }
 ```
 
-## Layered Architecture
+Ownership is enforced in the route handler itself (`getOwnedUserItem()` in `src/app/api/user-items/[id]/route.ts`), not by a separate auth-guard middleware — a cross-user request gets a 404 (not 403), deliberately, so it doesn't leak whether the resource exists.
+
+## Layered Architecture (as actually built)
 
 ```
 ┌─────────────────────────────────────────────────┐
 │                  Presentation Layer              │
-│   (React Components, Server/Client Components)   │
+│   (React Server/Client Components — src/app/*)   │
 ├─────────────────────────────────────────────────┤
 │                  API Layer                       │
-│   (Next.js API Routes — /app/api/*)              │
+│   (Next.js Route Handlers — src/app/api/*/route.ts)  │
+│   Each handler does: parse → validate (Zod) →    │
+│   query Prisma directly → format response.       │
+│   No service or repository indirection.          │
 ├─────────────────────────────────────────────────┤
-│                  Service Layer                   │
-│   (Business Logic — /lib/services/*)             │
-├─────────────────────────────────────────────────┤
-│                  Data Access Layer               │
-│   ┌──────────────┐  ┌────────────────────┐      │
-│   │ Prisma ORM   │  │ External API       │      │
-│   │ (PostgreSQL)  │  │ Clients            │      │
-│   │              │  │ (TMDB, AniList,    │      │
-│   │              │  │  MangaDex, Jikan)   │      │
-│   └──────────────┘  └────────────────────┘      │
+│                  Data Access                     │
+│   Prisma ORM (src/lib/db/prisma.ts) — PostgreSQL │
 ├─────────────────────────────────────────────────┤
 │                  Infrastructure                  │
-│   (Auth.js, Middleware, Rate Limiting, Caching)  │
+│   Auth.js, HOF middleware (rate limit + error     │
+│   handling), Zod validation schemas              │
 └─────────────────────────────────────────────────┘
 ```
 
-## Content Type Module System
-
-Each content type is handled as a modular service:
-
-```typescript
-// lib/services/content/types.ts
-interface ContentProvider {
-  type: ContentType;
-  search(query: string): Promise<SeriesResult[]>;
-  getDetails(externalId: string): Promise<SeriesDetail>;
-  getTrending(): Promise<SeriesResult[]>;
-  getPlatforms(externalId: string): Promise<Platform[]>;
-  getRatings(externalId: string): Promise<Rating[]>;
-}
-
-// lib/services/content/tv-provider.ts    → TMDB
-// lib/services/content/anime-provider.ts → AniList + Jikan
-// lib/services/content/manga-provider.ts → AniList + MangaDex
-// lib/services/content/novel-provider.ts → AniList
-```
-
-## Caching Strategy
-
-| Data Type | Cache Duration | Strategy |
-|---|---|---|
-| Trending lists | 1 hour | ISR revalidate |
-| Series detail | 24 hours | ISR revalidate |
-| Platform availability | 12 hours | ISR revalidate |
-| Search results | 30 minutes | ISR revalidate |
-| User library | Real-time | No cache (DB direct) |
-| User progress | Real-time | No cache (DB direct) |
-
 ## Rate Limiting Strategy
 
-| Endpoint | Limit | Window |
+Every route wrapped in `compose(withErrorHandler, withRateLimit)(handler)` gets the same uniform limit — `withRateLimit`'s defaults (`src/lib/utils/middleware.ts`), since no route currently overrides them:
+
+| Limit | Window | Scope |
 |---|---|---|
-| `/api/auth/login` | 5 requests | 15 minutes |
-| `/api/auth/register` | 3 requests | 1 hour |
-| `/api/search` | 30 requests | 1 minute |
-| `/api/library/*` | 60 requests | 1 minute |
-| General API | 100 requests | 1 minute |
+| 60 requests | 60 seconds | per IP (via `cf-connecting-ip` / `x-forwarded-for` header), per route path |
+
+In-memory store, reset on redeploy — fine for a single Worker instance, not horizontally consistent across many instances. Swap for Cloudflare's native Rate Limiting or Upstash Redis if that matters for your deployment.
 
 ## Error Handling Pattern
 
 ```typescript
-// Consistent API response format
+// The real, current ApiResponse<T> shape (src/types/common.ts)
 interface ApiResponse<T> {
   success: boolean;
   data?: T;
-  error?: {
-    code: string;
-    message: string;
-  };
-  meta?: {
-    page: number;
-    totalPages: number;
-    totalItems: number;
-  };
+  error?: string;
+  message?: string;
 }
 ```
+
+`AppError` (`src/lib/utils/app-error.ts`) is a custom error class with factory statics (`AppError.notFound()`, `.unauthorized()`, `.forbidden()`, `.badRequest()`, `.conflict()`, `.validationError()`, `.rateLimited()`, `.externalApiError()`). Route handlers `throw` it; `withErrorHandler` (the outermost middleware in the `compose()` chain) catches it and converts it to a structured `errorResponse()` — anything that isn't an `AppError` is logged and returned as a generic 500, never leaking internals to the client.
+
+See [design-patterns.md](design-patterns.md) for the full HOF middleware composition pattern and [api-contracts.md](api-contracts.md) for every endpoint's exact request/response shape.

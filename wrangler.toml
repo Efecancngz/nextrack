@@ -1,8 +1,8 @@
-name = "free-serie-tracker"
+name = "generic-saas-starter"
 compatibility_date = "2026-06-15"
 compatibility_flags = ["nodejs_compat"]
 
-# Main entrypoint — wraps the OpenNext-generated worker, adds a scheduled() handler
+# Main entrypoint — wraps the OpenNext-generated worker
 main = "custom-worker.ts"
 
 # Static assets
@@ -17,11 +17,7 @@ binding = "ASSETS"
 # NEXTAUTH_URL
 # GOOGLE_CLIENT_ID
 # GOOGLE_CLIENT_SECRET
-# TMDB_API_KEY
 
 # Development (wrangler dev)
 [dev]
 port = 3001
-
-[triggers]
-crons = ["0 */2 * * *"]

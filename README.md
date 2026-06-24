@@ -1,22 +1,23 @@
-# Free Serie Tracker 📺📚
+# Generic SaaS Starter
 
 *Read this in [Turkish / Türkçe](#türkçe)*
 
-Free Serie Tracker is a full-stack web application designed to help users track TV series, anime, manga, manhwa, light novels, and webtoons in one place, showing the most up-to-date official streaming/reading platforms (Netflix, Crunchyroll, Disney+, etc.) where the content is legally available.
+Generic SaaS Starter is a full-stack Next.js 16 template demonstrating a working pattern for auth, personal content tracking, dual ratings, and throttled update notifications — built on a content-agnostic `Item`/`UserItem` data model you can adapt to any domain (a course tracker, a reading list, a habit tracker, a watch list — anything with "items a user tracks progress and opinions on").
 
-This project follows the **JustWatch** model; it does not contain pirated/illegal links and only displays legitimate and licensed publisher information.
+This is a portfolio/demonstration project, not a live product. It ships with one placeholder example data source (`src/lib/api/example-source.ts`) standing in for a real external API integration — see [api-sources.md](docs/api-sources.md) for the pattern to follow when wiring in a real one.
 
 ---
 
-## 🚀 Features (MVP)
+## 🚀 Features
 
-- **Multi-Content Support**: Track TV Series, Anime, Manga, Manhwa, Light Novels, and Webtoons.
-- **Official Platform Tracking (JustWatch Model)**: Integrated with TMDB, AniList, and MangaDex to list official platforms and episode details.
-- **Personal Library**: Categorize content as *Watching*, *Plan to Watch*, *Completed*, *On Hold*, and *Dropped*.
-- **Progress Tracking**: Record your current progress (e.g., season/episode S2E5, or chapter numbers for manga/manhwa).
-- **Dual Rating System**: Display both normalized external ratings (TMDB/AniList/IMDb scale of 0-10) and your personal rating (1-10).
-- **Search & Discover**: Advanced filtering by type, genre, platform, score, and status.
-- **Theme Support**: Default modern dark mode, light mode, and system preference toggle.
+- **Auth.js v5**: Google OAuth + email/password, JWT sessions, custom username-setup flow.
+- **Generic tracking model**: `Item` (category/status/title/rating, no domain-specific fields) + `UserItem` (personal tracking status, favorite toggle, a single generic progress counter, notes).
+- **Personal tracking statuses**: Active, Planned, Completed, Paused, Dropped — with a status-filtered, grid/list-toggleable tracking board.
+- **Dual rating system**: external rating (cached on the `Item`) alongside a personal 1-10 score + review.
+- **Search & browse**: debounced search with autocomplete suggestions, category/status filtering.
+- **In-app notifications**: a real Cloudflare Cron-driven (well — request-triggered, throttled server-side) check for item updates, with a bell-icon dropdown and on/off toggle.
+- **Public profile pages**: per-user stats (tracked-by-category counts, total progress, average rating) and a favorites grid, no auth required to view.
+- **Theme support**: dark mode default, light mode, system preference.
 
 ---
 
@@ -29,32 +30,31 @@ This project follows the **JustWatch** model; it does not contain pirated/illega
 | **Database** | PostgreSQL (Neon.tech) | Serverless cloud SQL database |
 | **ORM** | Prisma | Type-safe SQL client and migration runner |
 | **Auth** | Auth.js (NextAuth v5) | Google OAuth & Email/Password authentication |
-| **Styling** | Tailwind CSS v4 + shadcn/ui | Premium, custom user interface design |
-| **Deployment** | Cloudflare Workers + Pages | Ad-friendly, ultra-fast hosting with unlimited bandwidth |
+| **Styling** | Tailwind CSS v4 + shadcn/ui | Custom UI, not generic AI-template look |
+| **Deployment** | Cloudflare Workers + Pages | Free tier, unlimited bandwidth |
 | **Adapter** | @opennextjs/cloudflare | Bridge to run Next.js on Cloudflare Workers |
-| **Monetization** | Google AdSense | Display Ads & Native Ad Cards integration |
 
 ---
 
 ## 📂 Project Structure & Documentation
 
-Detailed architectural and design decisions are documented in the `docs/` folder:
+Architectural and design decisions are documented in the `docs/` folder:
 
-- 📐 [architecture.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/architecture.md) — System architecture, data flow diagrams, caching & rate-limit strategies.
-- 🎨 [design-patterns.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/design-patterns.md) — 13 design patterns used in the project (Repository, Strategy, Factory, Middleware, etc.) with TypeScript examples.
-- 📁 [project-structure.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/project-structure.md) — Folder layout rules and layer-dependency constraints.
-- 🔗 [api-contracts.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/api-contracts.md) — REST API endpoints, request/response structures, and Zod schemas.
-- 📖 [swagger-setup.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/swagger-setup.md) — Swagger UI setup and JSDoc annotations.
-- 🗄️ [database-schema.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/database-schema.md) — ER diagram and Prisma schema configurations.
-- 📈 [phases.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/phases.md) — 3-phase roadmap and task list.
-- 💸 [monetization-and-deploy.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/monetization-and-deploy.md) — Cloudflare setup, Google AdSense placement strategy, and domain management.
-- 🚀 [getting-started.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/getting-started.md) — Running the app (with/without Docker), integrated APIs, and commands.
+- 📐 [architecture.md](docs/architecture.md) — System architecture, data flow, caching & rate-limit strategy (describes what's actually built, not an aspirational target).
+- 🎨 [design-patterns.md](docs/design-patterns.md) — The patterns actually used in this codebase (HOF middleware composition, error factory, generic response wrapper) with real examples.
+- 📁 [project-structure.md](docs/project-structure.md) — Folder layout and naming conventions.
+- 🔗 [api-contracts.md](docs/api-contracts.md) — REST API endpoints, request/response shapes, and Zod schemas.
+- 🗄️ [database-schema.md](docs/database-schema.md) — ER diagram and Prisma schema.
+- 🌐 [api-sources.md](docs/api-sources.md) — The example-data-source pattern for plugging in a real external API.
+- 🚀 [deploy.md](docs/deploy.md) — Cloudflare Workers deploy guidance.
+- 📈 [phases.md](docs/phases.md) — Development history, including the pivot from a TV-tracker product to this generic template.
+- 🏁 [getting-started.md](docs/getting-started.md) — Local setup (with/without Docker), environment variables, and Prisma commands.
 
 ---
 
 ## 💻 Local Setup Instructions
 
-Please refer to the detailed **[Getting Started Guide](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/getting-started.md)** for step-by-step instructions on running the project locally (using native Node.js or containerized Docker), configuring environment variables, and running database migrations.
+See the **[Getting Started Guide](docs/getting-started.md)** for step-by-step local setup (native Node.js or Docker), environment variable configuration, and database migrations.
 
 ---
 
@@ -71,10 +71,12 @@ npx opennextjs-cloudflare build
 npx wrangler deploy
 ```
 
+See [deploy.md](docs/deploy.md) for the full Cloudflare setup and why it's used instead of Vercel.
+
 ---
 
 ## 📄 License
-This project is designed for personal learning and portfolio purposes. All rights reserved.
+This project is built for portfolio and demonstration purposes. All rights reserved.
 
 <br/>
 <hr/>
@@ -82,21 +84,22 @@ This project is designed for personal learning and portfolio purposes. All right
 
 # Türkçe
 
-Free Serie Tracker, dünya genelinde yayınlanan dizi, anime, manga, manhwa, light novel ve webtoon serilerini tek bir yerden takip etmenizi sağlayan ve bu içeriklerin en güncel resmi olarak hangi yayın platformlarında (Netflix, Crunchyroll, Disney+, vb.) izlenebileceğini/okunabileceğini gösteren full-stack bir web uygulamasıdır.
+Generic SaaS Starter, kimlik doğrulama, kişisel içerik takibi, çiftli puanlama sistemi ve throttle'lı güncelleme bildirimleri için çalışan bir örüntüyü gösteren, Next.js 16 üzerine kurulu full-stack bir şablon projedir. Herhangi bir alana uyarlanabilen, içerik bağımsız bir `Item`/`UserItem` veri modeli üzerine inşa edilmiştir (kurs takibi, okuma listesi, alışkanlık takibi, izleme listesi — kullanıcının ilerleme ve görüş kaydettiği her şey).
 
-Bu proje **JustWatch** modelini benimser; korsan/yasadışı içerik bağlantıları barındırmaz, yalnızca yasal ve lisanslı yayıncı bilgilerini gösterir.
+Bu proje canlı bir ürün değil, bir portfolyo/demo projesidir. Gerçek bir dış API entegrasyonunun yerine geçen tek bir örnek veri kaynağıyla (`src/lib/api/example-source.ts`) birlikte gelir — gerçek bir kaynak bağlamak için izlenecek örüntü için [api-sources.md](docs/api-sources.md) dosyasına bakın.
 
 ---
 
-## 🚀 Özellikler (MVP)
+## 🚀 Özellikler
 
-- **Çoklu İçerik Desteği**: TV Dizileri, Anime, Manga, Manhwa, Light Novel ve Webtoon takibi.
-- **Resmi Platform Takibi (JustWatch Modeli)**: TMDB, AniList ve MangaDex entegrasyonu ile resmi izleme/okuma platformlarını ve bölüm detaylarını listeleme.
-- **Kişisel Kütüphane**: İçerikleri *İzliyorum (Watching)*, *Planlıyorum (Plan)*, *Tamamlandı (Completed)*, *Beklemede (On Hold)* ve *Bırakıldı (Dropped)* şeklinde kategorize etme.
-- **İlerleme Takibi**: Hangi sezonda, hangi bölümde (örn: S2E5) veya manga/manhwalarda kaçıncı sayfada/bölümde kaldığını kaydetme.
-- **Çiftli Puanlama Sistemi**: Hem dış kaynaklardan gelen normalize edilmiş puanları (TMDB/AniList/IMDb 0-10) hem de kişisel 1-10 puanlamanızı görüntüleme.
-- **Arama ve Keşfet**: Tür, platform, puan ve içerik tipine göre gelişmiş filtreleme özellikleri.
-- **Tema Desteği**: Gözü yormayan modern karanlık tema (Dark mode default), aydınlık tema ve sistem tercihi desteği.
+- **Auth.js v5**: Google OAuth & e-posta/şifre girişi, JWT oturumları, özel kullanıcı adı belirleme akışı.
+- **Generic takip modeli**: `Item` (kategori/durum/başlık/puan, alana özgü alan yok) + `UserItem` (kişisel takip durumu, favori, tek bir generic ilerleme sayacı, notlar).
+- **Kişisel takip durumları**: Active, Planned, Completed, Paused, Dropped — durum filtreli, grid/liste geçişli bir takip panosu ile.
+- **Çiftli puanlama sistemi**: `Item` üzerinde önbelleğe alınan dış puan, kişisel 1-10 puan + yorumun yanında.
+- **Arama ve keşfet**: debounce'lu arama, otomatik tamamlama önerileri, kategori/durum filtreleme.
+- **Uygulama içi bildirimler**: öğe güncellemeleri için sunucu tarafında saatlik throttle edilen bir kontrol, zil ikonlu açılır liste ve aç/kapa anahtarı ile.
+- **Herkese açık profil sayfaları**: kullanıcı başına istatistikler (kategoriye göre takip sayısı, toplam ilerleme, ortalama puan) ve favoriler ızgarası, görüntülemek için giriş gerekmez.
+- **Tema desteği**: varsayılan karanlık tema, aydınlık tema, sistem tercihi.
 
 ---
 
@@ -109,32 +112,31 @@ Bu proje **JustWatch** modelini benimser; korsan/yasadışı içerik bağlantıl
 | **Veritabanı** | PostgreSQL (Neon.tech) | Sunucusuz (Serverless) SQL veritabanı |
 | **ORM** | Prisma | Tip güvenli SQL sorguları ve şema yönetimi |
 | **Kimlik Doğrulama** | Auth.js (NextAuth v5) | Google OAuth & E-posta/Şifre girişi |
-| **Tasarım / Stil** | Tailwind CSS v4 + shadcn/ui | Özel, modern ve premium arayüz |
-| **Dağıtım (Deploy)** | Cloudflare Workers + Pages | Reklam dostu, yüksek hızlı ve sınırsız bant genişliği |
+| **Tasarım / Stil** | Tailwind CSS v4 + shadcn/ui | Özel arayüz, generic AI şablon görünümünde değil |
+| **Dağıtım (Deploy)** | Cloudflare Workers + Pages | Ücretsiz katman, sınırsız bant genişliği |
 | **Adaptör** | @opennextjs/cloudflare (OpenNext) | Next.js'i Cloudflare Workers üzerinde çalıştırma köprüsü |
-| **Gelir Modeli** | Google AdSense | Display Ads & Native Ad Cards entegrasyonu |
 
 ---
 
 ## 📂 Proje Yapısı ve Dokümantasyon
 
-Tüm mimari ve tasarım kararları projenin `docs/` klasöründe detaylıca belgelenmiştir:
+Mimari ve tasarım kararları `docs/` klasöründe belgelenmiştir:
 
-- 📐 [architecture.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/architecture.md) — Sistem mimarisi, veri akış şemaları, caching ve rate limit kuralları.
-- 🎨 [design-patterns.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/design-patterns.md) — Projede kullanılan 13 tasarım deseni (Repository, Strategy, Factory, Custom HOF Middleware, vb.) ve TypeScript örnekleri.
-- 📁 [project-structure.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/project-structure.md) — Dosya ve klasör yapısı kuralları, katmanlar arası yasaklı ilişkiler.
-- 🔗 [api-contracts.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/api-contracts.md) — REST API uç noktaları, istek/yanıt şemaları ve Zod doğrulama kuralları.
-- 📖 [swagger-setup.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/swagger-setup.md) — Swagger UI kurulumu ve JSDoc tanımlamaları.
-- 🗄️ [database-schema.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/database-schema.md) — Veritabanı ER şeması ve Prisma tanımlamaları.
-- 📈 [phases.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/phases.md) — 3 fazdan oluşan yol haritası ve yapılacaklar listesi.
-- 💸 [monetization-and-deploy.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/monetization-and-deploy.md) — Cloudflare kurulumu, Google AdSense yerleşimleri ve domain yönetimi.
-- 🚀 [getting-started.md](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/getting-started.md) — Docker'lı veya Docker'sız çalıştırma rehberi, entegre API'ler ve veritabanı komutları.
+- 📐 [architecture.md](docs/architecture.md) — Sistem mimarisi, veri akışı, caching ve rate-limit stratejisi (gerçekte ne inşa edildiğini anlatır, ulaşılmamış bir hedefi değil).
+- 🎨 [design-patterns.md](docs/design-patterns.md) — Bu kod tabanında gerçekten kullanılan pattern'ler (HOF middleware kompozisyonu, hata factory'si, generic response wrapper) gerçek örneklerle.
+- 📁 [project-structure.md](docs/project-structure.md) — Klasör yapısı ve isimlendirme kuralları.
+- 🔗 [api-contracts.md](docs/api-contracts.md) — REST API uç noktaları, istek/yanıt şemaları ve Zod doğrulama kuralları.
+- 🗄️ [database-schema.md](docs/database-schema.md) — ER şeması ve Prisma tanımlamaları.
+- 🌐 [api-sources.md](docs/api-sources.md) — Gerçek bir dış API bağlamak için örnek-veri-kaynağı örüntüsü.
+- 🚀 [deploy.md](docs/deploy.md) — Cloudflare Workers deploy rehberi.
+- 📈 [phases.md](docs/phases.md) — Geliştirme geçmişi, TV-tracker ürününden bu generic şablona geçiş dahil.
+- 🏁 [getting-started.md](docs/getting-started.md) — Yerel kurulum (Docker'lı/Docker'sız), çevre değişkenleri ve Prisma komutları.
 
 ---
 
 ## 💻 Yerel Geliştirme Kurulumu
 
-Detaylı çalıştırma talimatları (Docker konteyner desteği, Neon PostgreSQL kurulumu, çevre değişkenleri ve Prisma komutları dahil) için **[Başlangıç Rehberi](file:///c:/Users/efeca/OneDrive/Masaüstü/serietracker/docs/getting-started.md)** belgesini inceleyebilirsiniz.
+Adım adım yerel kurulum (native Node.js veya Docker), çevre değişkeni yapılandırması ve veritabanı migration'ları için **[Başlangıç Rehberi](docs/getting-started.md)** belgesine bakın.
 
 ---
 
@@ -151,7 +153,9 @@ npx opennextjs-cloudflare build
 npx wrangler deploy
 ```
 
+Cloudflare kurulumunun tamamı ve neden Vercel yerine Cloudflare kullanıldığı için [deploy.md](docs/deploy.md) dosyasına bakın.
+
 ---
 
 ## 📄 Lisans
-Bu proje kişisel gelişim amaçlı tasarlanmış olup tüm hakları saklıdır.
+Bu proje portfolyo ve demo amaçlı geliştirilmiştir. Tüm hakları saklıdır.

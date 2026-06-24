@@ -9,7 +9,7 @@ async function getHandler() {
   const [notifications, unreadCount, userRow] = await Promise.all([
     prisma.notification.findMany({
       where: { userId: user.id },
-      include: { series: true },
+      include: { item: true },
       orderBy: { createdAt: "desc" },
       take: 20,
     }),

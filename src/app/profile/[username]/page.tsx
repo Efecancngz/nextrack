@@ -5,9 +5,9 @@ import { prisma } from "@/lib/db/prisma";
 import ProfileHeader from "@/components/ProfileHeader";
 import ProfileStats from "@/components/ProfileStats";
 import ProfileFavorites from "@/components/ProfileFavorites";
-import type { ContentType } from "@/types/common";
+import type { ItemCategory } from "@/types/item";
 import type { ProfileStatsData } from "@/types/profile";
-import type { SeriesCard } from "@/types/series";
+import type { ItemCard } from "@/types/item";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   const { username } = await params;
   return {
     title: `@${username}`,
-    description: `${username}'s series tracking profile`,
+    description: `${username}'s tracking profile`,
   };
 }
 
@@ -31,53 +31,46 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
-  const [itemsByType, progressSums, ratingAvg, favoriteItems] = await Promise.all([
-    prisma.libraryItem.findMany({
+  const [itemsByCategory, progressSum, ratingAvg, favoriteEntries] = await Promise.all([
+    prisma.userItem.findMany({
       where: { userId: user.id },
-      select: { series: { select: { contentType: true } } },
+      select: { item: { select: { category: true } } },
     }),
-    prisma.libraryItem.aggregate({
+    prisma.userItem.aggregate({
       where: { userId: user.id },
-      _sum: { currentEpisode: true, currentChapter: true },
+      _sum: { progress: true },
     }),
-    prisma.userRating.aggregate({
+    prisma.rating.aggregate({
       where: { userId: user.id },
       _avg: { score: true },
     }),
-    prisma.libraryItem.findMany({
+    prisma.userItem.findMany({
       where: { userId: user.id, isFavorite: true },
-      include: { series: true },
+      include: { item: true },
     }),
   ]);
 
-  const byContentType = itemsByType.reduce((acc, item) => {
-    const type = item.series.contentType as ContentType;
-    acc[type] = (acc[type] ?? 0) + 1;
+  const byCategory = itemsByCategory.reduce((acc, row) => {
+    const category = row.item.category as ItemCategory;
+    acc[category] = (acc[category] ?? 0) + 1;
     return acc;
-  }, {} as Record<ContentType, number>);
+  }, {} as Record<ItemCategory, number>);
 
   const stats: ProfileStatsData = {
-    byContentType,
-    episodesWatched: progressSums._sum.currentEpisode ?? 0,
-    chaptersRead: progressSums._sum.currentChapter ?? 0,
+    byCategory,
+    totalProgress: progressSum._sum.progress ?? 0,
     averageRating: ratingAvg._avg.score,
   };
 
-  const favorites: SeriesCard[] = favoriteItems.map((item) => ({
-    id: item.series.id,
-    externalId: item.series.externalId,
-    source: item.series.source,
-    contentType: item.series.contentType,
-    status: item.series.status,
-    title: item.series.title,
-    titleOriginal: item.series.titleOriginal ?? undefined,
-    coverImage: item.series.coverImage ?? undefined,
-    year: item.series.year ?? undefined,
-    genres: item.series.genres,
-    ratingExternal: item.series.ratingExternal ?? undefined,
-    totalEpisodes: item.series.totalEpisodes ?? undefined,
-    totalChapters: item.series.totalChapters ?? undefined,
-    platforms: [],
+  const favorites: ItemCard[] = favoriteEntries.map((entry) => ({
+    id: entry.item.id,
+    category: entry.item.category,
+    status: entry.item.status,
+    title: entry.item.title,
+    description: entry.item.description ?? undefined,
+    coverImage: entry.item.coverImage ?? undefined,
+    totalUnits: entry.item.totalUnits ?? undefined,
+    ratingExternal: entry.item.ratingExternal ?? undefined,
   }));
 
   return (

@@ -21,8 +21,8 @@ export default function Footer() {
         <div className="footer-links">
           <div className="footer-col">
             <h4 className="footer-col-title">Navigate</h4>
-            <Link href="/explore" className="footer-link">Browse</Link>
-            <Link href="/library" className="footer-link">My List</Link>
+            <Link href="/browse" className="footer-link">Browse</Link>
+            <Link href="/my-items" className="footer-link">My Items</Link>
           </div>
           <div className="footer-col">
             <h4 className="footer-col-title">Data Sources</h4>

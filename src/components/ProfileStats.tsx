@@ -1,29 +1,27 @@
 import React from "react";
-import { CONTENT_TYPE_LABELS, CONTENT_TYPE_BADGE_CLASS, type ContentType } from "@/types/common";
+import { ITEM_CATEGORY_LABELS, type ItemCategory } from "@/types/item";
 import type { ProfileStatsData } from "@/types/profile";
 
 interface ProfileStatsProps {
   stats: ProfileStatsData;
 }
 
-const CONTENT_TYPES: ContentType[] = ["TV_SERIES", "ANIME", "MANGA", "MANHWA", "LIGHT_NOVEL", "WEBTOON"];
+const CATEGORIES: ItemCategory[] = ["TYPE_A", "TYPE_B", "TYPE_C"];
 
 export default function ProfileStats({ stats }: ProfileStatsProps) {
   return (
     <div className="profile-stats-grid">
-      {CONTENT_TYPES.map((type) => (
-        <div key={type} className="card profile-stat-card">
-          <span className={`badge ${CONTENT_TYPE_BADGE_CLASS[type]}`}>{CONTENT_TYPE_LABELS[type]}</span>
-          <span className="profile-stat-value">{stats.byContentType[type] ?? 0}</span>
+      {CATEGORIES.map((category) => (
+        <div key={category} className="card profile-stat-card">
+          <span className={`badge badge-${category.toLowerCase().replace("_", "-")}`}>
+            {ITEM_CATEGORY_LABELS[category]}
+          </span>
+          <span className="profile-stat-value">{stats.byCategory[category] ?? 0}</span>
         </div>
       ))}
       <div className="card profile-stat-card">
-        <span className="profile-stat-label">Episodes Watched</span>
-        <span className="profile-stat-value">{stats.episodesWatched}</span>
-      </div>
-      <div className="card profile-stat-card">
-        <span className="profile-stat-label">Chapters Read</span>
-        <span className="profile-stat-value">{stats.chaptersRead}</span>
+        <span className="profile-stat-label">Total Progress</span>
+        <span className="profile-stat-value">{stats.totalProgress}</span>
       </div>
       <div className="card profile-stat-card">
         <span className="profile-stat-label">Average Rating Given</span>

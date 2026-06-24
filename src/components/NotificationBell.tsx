@@ -9,7 +9,7 @@ interface NotificationItem {
   message: string;
   isRead: boolean;
   createdAt: string;
-  series: { source: string; externalId: string };
+  item: { id: string };
 }
 
 export default function NotificationBell() {
@@ -92,7 +92,7 @@ export default function NotificationBell() {
             notifications.map((n) => (
               <Link
                 key={n.id}
-                href={`/series/${n.series.source}-${n.series.externalId}`}
+                href={`/items/${n.item.id}`}
                 className="notification-dropdown-item"
                 onClick={() => setOpen(false)}
               >

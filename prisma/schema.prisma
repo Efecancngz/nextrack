@@ -1,4 +1,4 @@
-// Free Serie Tracker — Prisma Schema
+// Free Serie Tracker — Prisma Schema (generic SaaS starter)
 // Learn more: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -30,11 +30,9 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
-  libraryItems  LibraryItem[]
-  userRatings   UserRating[]
+  userItems     UserItem[]
+  ratings       Rating[]
   notifications Notification[]
-  userNotes      UserNote[]
-  searchKeywords SearchKeyword[]
 
   @@index([email])
 }
@@ -81,203 +79,113 @@ model VerificationToken {
 }
 
 // ─────────────────────────────────────────────────
-// Content Types
+// Item (generic content model — example domain)
 // ─────────────────────────────────────────────────
 
-enum ContentType {
-  TV_SERIES
-  ANIME
-  MANGA
-  MANHWA
-  LIGHT_NOVEL
-  WEBTOON
+enum ItemCategory {
+  TYPE_A
+  TYPE_B
+  TYPE_C
 }
 
-enum ContentStatus {
-  ONGOING      // Currently airing/publishing
-  COMPLETED    // Finished
-  HIATUS       // On break
-  CANCELLED    // Cancelled/discontinued
-  UPCOMING     // Not yet started
+enum ItemStatus {
+  ONGOING
+  COMPLETED
+  HIATUS
+  CANCELLED
+  UPCOMING
 }
 
-// ─────────────────────────────────────────────────
-// Series (cached metadata from external APIs)
-// ─────────────────────────────────────────────────
+model Item {
+  id             String       @id @default(cuid())
+  externalId     String
+  source         String       // always "example-source" in this starter
+  category       ItemCategory
+  status         ItemStatus   @default(ONGOING)
+  title          String
+  description    String?
+  coverImage     String?
+  totalUnits     Int?
+  ratingExternal Float?
+  cachedAt       DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-model Series {
-  id              String        @id @default(cuid())
-  externalId      String        // ID from source API (TMDB id, AniList id, etc.)
-  source          String        // "tmdb" | "anilist" | "mangadex" | "jikan"
-  contentType     ContentType
-  status          ContentStatus @default(ONGOING)
-
-  // Core info
-  title           String
-  titleOriginal   String?
-  titleRomaji     String?
-  synopsis        String?
-  coverImage      String?       // URL
-  bannerImage     String?       // URL
-  genres          String[]      // ["Action", "Drama", ...]
-  tags            String[]      // ["Based on Manga", "School", ...]
-  year            Int?
-  season          String?       // "Spring 2024" for anime
-
-  // Episode / Chapter info
-  totalEpisodes   Int?          // null = unknown/ongoing
-  totalChapters   Int?          // for manga-type
-  totalVolumes    Int?          // for light novels
-
-  // External ratings (normalized 0.0 - 10.0)
-  ratingExternal  Float?        // avg of available sources
-  ratingTmdb      Float?
-  ratingAniList   Float?
-  ratingImdb      Float?
-  ratingMal       Float?
-
-  // Platform availability (stored as JSON)
-  // [{ platformId, platformName, url, region }]
-  platforms       Json          @default("[]")
-
-  cachedAt        DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  libraryItems    LibraryItem[]
-  userRatings     UserRating[]
-  notifications   Notification[]
-  episodeLanguages EpisodeLanguage[]
-  userNotes       UserNote[]
+  userItems     UserItem[]
+  ratings       Rating[]
+  notifications Notification[]
 
   @@unique([externalId, source])
-  @@index([contentType])
+  @@index([category])
   @@index([title])
-  @@index([cachedAt])
 }
 
 // ─────────────────────────────────────────────────
-// Library (User's personal tracking)
+// UserItem (personal tracking)
 // ─────────────────────────────────────────────────
 
-enum LibraryStatus {
-  WATCHING     // Currently watching/reading
-  PLAN_TO_WATCH
+enum TrackingStatus {
+  ACTIVE
+  PLANNED
   COMPLETED
-  ON_HOLD
+  PAUSED
   DROPPED
 }
 
-model LibraryItem {
-  id        String        @id @default(cuid())
-  userId    String
-  seriesId  String
-  status    LibraryStatus @default(PLAN_TO_WATCH)
-  isFavorite Boolean      @default(false)
-  waitLanguage String?    // "EN" | "TR" | null — only meaningful for MangaDex-sourced items
+model UserItem {
+  id         String         @id @default(cuid())
+  userId     String
+  itemId     String
+  status     TrackingStatus @default(PLANNED)
+  isFavorite Boolean        @default(false)
+  progress   Int?
+  notes      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
-  // Progress tracking
-  currentSeason   Int?   // For TV series
-  currentEpisode  Int?   // S2E5 → season=2, episode=5
-  currentChapter  Int?   // Ch.45
-  currentVolume   Int?   // Vol.3
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  startedAt   DateTime?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, seriesId])
+  @@unique([userId, itemId])
   @@index([userId])
   @@index([userId, status])
 }
 
 // ─────────────────────────────────────────────────
-// User Ratings (personal score 1-10)
+// Rating (personal score 1-10)
 // ─────────────────────────────────────────────────
 
-model UserRating {
+model Rating {
   id        String   @id @default(cuid())
   userId    String
-  seriesId  String
-  score     Int      // 1-10
-  review    String?  // Optional written review
+  itemId    String
+  score     Int
+  review    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, seriesId])
+  @@unique([userId, itemId])
   @@index([userId])
-  @@index([seriesId])
+  @@index([itemId])
 }
 
 // ─────────────────────────────────────────────────
-// Notifications (new episode/chapter alerts)
+// Notification (item-update alerts)
 // ─────────────────────────────────────────────────
 
 model Notification {
-  id            String   @id @default(cuid())
-  userId        String
-  seriesId      String
-  libraryItemId String?
-  message       String
-  isRead        Boolean  @default(false)
-  createdAt     DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-
-  @@index([userId, isRead])
-  @@index([userId, createdAt])
-}
-
-// ─────────────────────────────────────────────────
-// Language/translation availability tracking
-// ─────────────────────────────────────────────────
-
-model EpisodeLanguage {
-  id            String   @id @default(cuid())
-  seriesId      String
-  language      String   // "EN" | "TR"
-  latestChapter Int
-  updatedAt     DateTime @updatedAt
-
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-
-  @@unique([seriesId, language])
-}
-
-// ─────────────────────────────────────────────────
-// Private notes & custom search keywords
-// ─────────────────────────────────────────────────
-
-model UserNote {
   id        String   @id @default(cuid())
   userId    String
-  seriesId  String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, seriesId])
-  @@index([userId])
-}
-
-model SearchKeyword {
-  id        String   @id @default(cuid())
-  userId    String
-  label     String
-  isDefault Boolean  @default(false)
+  itemId    String
+  message   String
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
