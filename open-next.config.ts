@@ -6,7 +6,9 @@ import { defineCloudflareConfig } from "@opennextjs/cloudflare";
 // esbuild silently falls back to the project root's node_modules, masking the error.
 // The "default" export (dist/empty.js) is the correct build-time stub; pg's workerd
 // socket is wired at runtime by the Cloudflare runtime itself, not via esbuild bundling.
-export default {
+const config = {
   ...defineCloudflareConfig({}),
   cloudflare: { useWorkerdCondition: false },
 };
+
+export default config;
