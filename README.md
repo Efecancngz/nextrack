@@ -81,7 +81,7 @@ See [deploy.md](docs/deploy.md) for the full Cloudflare setup and why it's used 
 ---
 
 ## 📄 License
-This project is built for portfolio and demonstration purposes. All rights reserved.
+MIT — see [LICENSE](LICENSE)
 
 <br/>
 <hr/>
@@ -168,4 +168,4 @@ Cloudflare kurulumunun tamamı ve neden Vercel yerine Cloudflare kullanıldığ�
 ---
 
 ## 📄 Lisans
-Bu proje portfolyo ve demo amaçlı geliştirilmiştir. Tüm hakları saklıdır.
+MIT — bkz. [LICENSE](LICENSE)
