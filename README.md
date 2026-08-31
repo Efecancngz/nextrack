@@ -1,6 +1,11 @@
-# Generic SaaS Starter
+# nextrack — Generic SaaS Starter
 
 *Read this in [Turkish / Türkçe](#türkçe)*
+
+> **Why "nextrack"?** This repo started as a TV/anime/manga tracker called
+> NexTrack. It has since pivoted into a generic, content-agnostic tracking
+> template — the name stuck, the product underneath changed. See
+> [docs/phases.md](docs/phases.md) for the full pivot history.
 
 Generic SaaS Starter is a full-stack Next.js 16 template demonstrating a working pattern for auth, personal content tracking, dual ratings, and throttled update notifications — built on a content-agnostic `Item`/`UserItem` data model you can adapt to any domain (a course tracker, a reading list, a habit tracker, a watch list — anything with "items a user tracks progress and opinions on").
 
@@ -83,6 +88,11 @@ This project is built for portfolio and demonstration purposes. All rights reser
 <br/>
 
 # Türkçe
+
+> **Neden "nextrack"?** Bu repo, NexTrack adında bir TV/anime/manga takip
+> uygulaması olarak başladı. Zamanla içerik bağımsız, generic bir takip
+> şablonuna dönüştü — isim kaldı, altındaki ürün değişti. Pivot'un tam
+> geçmişi için [docs/phases.md](docs/phases.md) dosyasına bakabilirsiniz.
 
 Generic SaaS Starter, kimlik doğrulama, kişisel içerik takibi, çiftli puanlama sistemi ve throttle'lı güncelleme bildirimleri için çalışan bir örüntüyü gösteren, Next.js 16 üzerine kurulu full-stack bir şablon projedir. Herhangi bir alana uyarlanabilen, içerik bağımsız bir `Item`/`UserItem` veri modeli üzerine inşa edilmiştir (kurs takibi, okuma listesi, alışkanlık takibi, izleme listesi — kullanıcının ilerleme ve görüş kaydettiği her şey).
 
